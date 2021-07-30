@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using PhyicsRT;
 using Unity.Mathematics;
 using Unity.Physics.Editor;
 using UnityEditor;
@@ -303,7 +304,7 @@ class PhysicsShapeEditor : Editor
                 pShapeConvexRadius.floatValue = EditorGUILayout.FloatField("Convex radius", pShapeConvexRadius.floatValue);
                 break;
             case ShapeType.Plane:
-                pShapeSize.vector3Value.Set(EditorGUILayout.FloatField("Width", pShapeSize.vector3Value.x), EditorGUILayout.FloatField("Height", pShapeSize.vector3Value.y), pShapeSize.vector3Value.z);
+                pShapeSize.vector3Value = new Vector3(EditorGUILayout.FloatField("Width", pShapeSize.vector3Value.x), pShapeSize.vector3Value.y, EditorGUILayout.FloatField("Height", pShapeSize.vector3Value.z));
                 break;
             case ShapeType.ConvexHull:
                 pShapeMesh.objectReferenceValue = EditorGUILayout.ObjectField("Mesh", pShapeMesh.objectReferenceValue, typeof(Mesh), false);

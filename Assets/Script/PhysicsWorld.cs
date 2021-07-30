@@ -1,113 +1,101 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
-[AddComponentMenu("PhysicsRT/Physics World")]
-[DefaultExecutionOrder(90)]
-[DisallowMultipleComponent]
-public class PhysicsWorld : MonoBehaviour
+namespace PhyicsRT
 {
-    [Tooltip("Use this simulation if you want any continuous simulation.")]
-    public bool Continuous = false;
-    [Tooltip("Multithreaded continuous simulation.")]
-    public bool Multithreaded = false;
-    [Tooltip("The gravity for the world. The default is (0, -9.8, 0).")]
-    public Vector3 Gravity = new Vector3(0, -9.81f, 0);
-    [Tooltip("Specifies the number of solver iterations the physics engine will perform. Higher values mean more stability, but also worse performance.")]
-    public int SolverIterationCount = 4;
-    [Tooltip("Sets the broadphase size to be a cube centered on the origin of side sideLength.")]
-    public float BroadPhaseWorldSize = 1000;
-    [Tooltip("The collision tolerance. This is used to create and keep contact points even for non penetrating objects. This dramatically increases the stability of the system. The default collision tolerance is 0.1f.")]
-    public float CollisionTolerance = 0.1f;
-    [Tooltip("Enable simulating .")]
-    public bool Simulating = true;
+    [AddComponentMenu("PhysicsRT/Physics World")]
+    [DefaultExecutionOrder(90)]
+    [DisallowMultipleComponent]
+    public class PhysicsWorld : MonoBehaviour
+    {
+        [Tooltip("如果需要任何连续模拟，请使用此模拟。")]
+        public bool Continuous = false;
+        [Tooltip("世界的引力。默认值是 (0, -9.8, 0).")]
+        public Vector3 Gravity = new Vector3(0, -9.81f, 0);
+        [Tooltip("指定物理引擎将执行的解算器迭代次数。值越高，稳定性越高，但性能也越差。")]
+        public int SolverIterationCount = 4;
+        [Tooltip("设置物理边界为边长原点为中心的立方体。")]
+        public float BroadPhaseWorldSize = 1000;
+        [Tooltip("碰撞容限。这用于创建和保持接触点，即使对于非穿透性对象也是如此。这大大提高了系统的稳定性。默认碰撞容限为0.1f。")]
+        public float CollisionTolerance = 0.1f;
+        [Tooltip("是否启用物理模拟")]
+        public bool Simulating = true;
 
-    public static PhysicsWorld Inastance { get; private set; }
-
-    private List<PhysicsBody> bodys = new List<PhysicsBody>();
-
-    private void Awake() {
-        if(Inastance != null) 
-            Debug.LogError("There can only one PhysicsWorld instance in a scense.");
-        else {
-            Inastance = this;
-            InitPhysicsWorld();
+        /// <summary>
+        /// 所有物理场景
+        /// </summary>
+        /// <typeparam name="int">Unity场景的buildIndex</typeparam>
+        /// <typeparam name="PhysicsWorld"></typeparam>
+        /// <returns></returns>
+        public static Dictionary<int, PhysicsWorld> PhysicsWorlds { get; } = new Dictionary<int, PhysicsWorld>();
+        /// <summary>
+        /// 获取当前场景的物理场景
+        /// </summary>
+        /// <returns></returns>
+        public static PhysicsWorld GetCurrentScensePhysicsWorld() {
+            int currentScenseIndex = SceneManager.GetActiveScene().buildIndex;
+            if(PhysicsWorlds.TryGetValue(currentScenseIndex, out var a))
+                return a;
+            return null;
         }
-    }
-    private void OnDestroy() {
-        Inastance = null; 
-        DestroyPhysicsWorld();
-    }
-    private void Start()
-    {
-        
-    }
-    private void Update()
-    {
-        
-    }
-    private void FixedUpdate() {
-        if(Simulating) {
 
-            //StepWorld
-            PhysicsApi.RT_StepWorld(physicsWorldPtr, PhysicsApi.MulitThreadPtr, Time.deltaTime);
+        private List<PhysicsBody> bodys = new List<PhysicsBody>();
+        private IntPtr physicsWorldPtr = IntPtr.Zero;
 
-            //Update all bodys position
-            foreach(PhysicsBody body in bodys) {
-                if(body.gameObject.activeSelf) {
-                    
+        private void Awake() {
+            int currentScenseIndex = SceneManager.GetActiveScene().buildIndex;
+            if(PhysicsWorlds.ContainsKey(currentScenseIndex)) 
+                Debug.LogError("There can only one PhysicsWorld instance in a scense.");
+            else {
+                PhysicsWorlds.Add(currentScenseIndex, this);
+                physicsWorldPtr = PhysicsApi.API.CreatePhysicsWorld(
+                    PhysicsApi.API.CreateVec3(Gravity.x, Gravity.y, Gravity.z),
+                    SolverIterationCount,
+                    BroadPhaseWorldSize,
+                    CollisionTolerance);
+            }
+        }
+        private void OnDestroy() {
+            int currentScenseIndex = SceneManager.GetActiveScene().buildIndex;
+            if(PhysicsWorlds.ContainsKey(currentScenseIndex)) 
+                PhysicsWorlds.Remove(currentScenseIndex);
+            PhysicsApi.API.DestroyPhysicsWorld(physicsWorldPtr);
+            physicsWorldPtr = IntPtr.Zero;
+        }
+        private void Start()
+        {
+            
+        }
+        private void Update()
+        {
+            
+        }
+        private void FixedUpdate() {
+            if(Simulating) {
+
+                //StepWorld
+                PhysicsApi.API.StepPhysicsWorld(physicsWorldPtr, Time.deltaTime);
+
+                //Update all bodys position
+                foreach(PhysicsBody body in bodys) {
+                    if(body.gameObject.activeSelf) {
+                        
+                    }
                 }
             }
         }
-    }
 
-    private IntPtr physicsWorldPtr = IntPtr.Zero;
-
-    private void InitPhysicsWorld() {
-
-        bool mulitThread = PhysicsApi.MulitThreadEnabled && Multithreaded;
-
-        hkpWorldCinfoSimulationType type = hkpWorldCinfoSimulationType.SIMULATION_TYPE_DISCRETE;
-        if(Multithreaded) type = hkpWorldCinfoSimulationType.SIMULATION_TYPE_MULTITHREADED;
-        else if(Multithreaded) type = hkpWorldCinfoSimulationType.SIMULATION_TYPE_CONTINUOUS;
-        
-        physicsWorldPtr = PhysicsApi.hkpWorld_new(
-            type,
-            BroadPhaseWorldSize,
-            new hkVector4(Gravity).Ptr,
-            CollisionTolerance,
-            SolverIterationCount
-        );
-
-        PhysicsApi.hkpWorld_markForWrite(physicsWorldPtr);
-        PhysicsApi.hkpAgentRegisterUtil_registerAllAgents(PhysicsApi.hkpWorld_getCollisionDispatcher(physicsWorldPtr));
-
-        if(mulitThread)
-            PhysicsApi.hkpWorld_registerWithJobQueue(PhysicsApi.RT_GetMulitThreadJobQueue(PhysicsApi.MulitThreadPtr));
-
-        PhysicsApi.hkpWorld_unmarkForWrite(physicsWorldPtr);
-    }
-    private void DestroyPhysicsWorld() {
-        PhysicsApi.hkpWorld_markForWrite(physicsWorldPtr);
-        PhysicsApi.hkpWorld_removeReference(physicsWorldPtr);
-        physicsWorldPtr = IntPtr.Zero;
-    }
-
-    public void AddBody(PhysicsBody body) {
-        if(!bodys.Contains(body)) {
-
-            bodys.Add(body);
-
-            PhysicsApi.hkpWorld_addEntity(physicsWorldPtr, body.Ptr, body.gameObject.activeSelf ? PhysicsApi.HK_ENTITY_ACTIVATION_DO_ACTIVATE :  PhysicsApi.HK_ENTITY_ACTIVATION_DO_NOT_ACTIVATE);
-            PhysicsApi.hkpEntity_removeReference(body.Ptr);
+        public void AddBody(PhysicsBody body) {
+            if(!bodys.Contains(body)) {
+                bodys.Add(body);
+            }
         }
-    }
-    public void RemoveBody(PhysicsBody body) {
-        if(bodys.Contains(body)) {
-            bodys.Remove(body);
-
-            PhysicsApi.hkpWorld_removeEntity(physicsWorldPtr, body.Ptr);
-            PhysicsApi.hkpEntity_addReference(body.Ptr);
+        public void RemoveBody(PhysicsBody body) {
+            if(bodys.Contains(body)) {
+                bodys.Remove(body);
+            }
         }
     }
 }

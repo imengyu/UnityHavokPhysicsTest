@@ -69,23 +69,23 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)$(ProjectName)\Source;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)$(ProjectName)\Lib\win32_vs2010\debug_dll;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)$(ProjectName)\Havok\Source;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)$(ProjectName)\Havok\Lib\win32_vs2010\debug_dll;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)$(ProjectName)\Source;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)$(ProjectName)\Lib\win32_vs2010\debug_dll;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)$(ProjectName)\Havok\Source;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)$(ProjectName)\Havok\Lib\win32_vs2010\debug_dll;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)$(ProjectName)\Source;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)$(ProjectName)\Lib\win32_vs2010\release_dll;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)$(ProjectName)\Havok\Source;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)$(ProjectName)\Havok\Lib\win32_vs2010\release_dll;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)$(ProjectName)\Source;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)$(ProjectName)\Lib\x64_vs2010\release_dll;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)$(ProjectName)\Havok\Source;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)$(ProjectName)\Havok\Lib\x64_vs2010\release_dll;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -158,16 +158,18 @@
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Commom.h" />
-    <ClInclude Include="MathHeader.h" />
-    <ClInclude Include="Physics.h" />
-    <ClInclude Include="Physics_RT.h" />
+    <ClInclude Include="SimpleLinkedList.hpp" />
+    <ClInclude Include="PhysicsBody.h" />
+    <ClInclude Include="PhysicsCommon.h" />
+    <ClInclude Include="PhysicsFunctions.h" />
+    <ClInclude Include="PhysicsHeader.h" />
+    <ClInclude Include="PhysicsShape.h" />
+    <ClInclude Include="PhysicsWorld.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Commom.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</CompileAsManaged>
@@ -182,18 +184,17 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="MathHeader.cpp" />
-    <ClCompile Include="Physics.cpp" />
-    <ClCompile Include="Physics_RT.cpp" />
+    <ClCompile Include="PhysicsBody.cpp" />
+    <ClCompile Include="PhysicsFunctions.cpp" />
+    <ClCompile Include="PhysicsMain.cpp" />
+    <ClCompile Include="PhysicsShape.cpp" />
+    <ClCompile Include="PhysicsWorld.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Physics_RT.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

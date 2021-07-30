@@ -1,3 +1,4 @@
+using PhyicsRT;
 using Unity.Mathematics;
 using Unity.Physics.Editor;
 using UnityEditor;
@@ -128,7 +129,7 @@ public class PhysicsShapeEditorTool : EditorTool
           {
             var size2 = shape.ShapeSize;
             s_Plane.center = float3.zero;
-            s_Plane.size = new float3(size2.x, 0f, size2.y);
+            s_Plane.size = new float3(size2.x, size2.y, size2.z);
             EditorGUI.BeginChangeCheck();
             {
               var m = math.mul(shape.transform.localToWorldMatrix, float4x4.TRS(sTranslation, sOrientation, 1f));
@@ -150,6 +151,13 @@ public class PhysicsShapeEditorTool : EditorTool
             break;
           }
         case ShapeType.Mesh:
+          if (Event.current.type != EventType.Repaint)
+            break;
+          //var points = GetPreviewData(shape).Edges;
+          //if (points.Length > 0)
+          //    Handles.DrawLines(points);
+          break;
+        case ShapeType.ConvexHull:
           if (Event.current.type != EventType.Repaint)
             break;
           //var points = GetPreviewData(shape).Edges;

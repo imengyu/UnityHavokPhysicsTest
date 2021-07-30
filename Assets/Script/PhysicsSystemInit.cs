@@ -1,21 +1,24 @@
 using UnityEngine;
 
-public static class PhysicsSystemInit
+namespace PhyicsRT
 {
-    public static void Init()
+    public static class PhysicsSystemInit
     {
-        DoInit();
-        Application.quitting += () => {
-            DoDestroy();
-        };
-    }
+        public static void Init()
+        {
+            DoInit();
+            Application.quitting += () => {
+                DoDestroy();
+            };
+        }
 
-    public static void DoDestroy()
-    {
-        PhysicsApi.PhysicsApiDestroy();
-    }
-    public static void DoInit()
-    {
-        PhysicsApi.PhysicsApiInit();
+        public static void DoDestroy()
+        {
+            PhysicsApi.PhysicsApiDestroy();
+        }
+        public static void DoInit()
+        {
+            PhysicsApi.PhysicsApiInit();
+        }
     }
 }

@@ -1,0 +1,66 @@
+#pragma once
+#include "PhysicsHeader.h"
+#include "PhysicsCommon.h"
+#include "PhysicsShape.h"
+#include "PhysicsBody.h"
+#include "PhysicsWorld.h"
+
+struct sApiStruct {
+	fnCommonDelete CommonDelete;
+
+	fnCreateVec3 CreateVec3;
+	fnCreateTransform CreateTransform;
+	fnCreateVec4 CreateVec4;
+	fnDestroyVec4 DestroyVec4;
+	fnDestroyVec3 DestroyVec3;
+	fnDestroyTransform DestroyTransform;
+
+	fnCreatePhysicsWorld CreatePhysicsWorld;
+	fnDestroyPhysicsWorld DestroyPhysicsWorld;
+	fnStepPhysicsWorld StepPhysicsWorld;
+	fnSetPhysicsWorldGravity SetPhysicsWorldGravity;
+	fnReadPhysicsWorldBodys ReadPhysicsWorldBodys;
+
+	fnCreateRigdBody CreateRigdBody;
+	fnActiveRigdBody ActiveRigdBody;
+	fnDeactiveRigdBody DeactiveRigdBody;
+	fnSetRigdBodyMass SetRigdBodyMass;
+	fnSetRigdBodyFriction SetRigdBodyFriction;
+	fnSetRigdBodyRestitution SetRigdBodyRestitution;
+	fnSetRigdBodyCenterOfMass SetRigdBodyCenterOfMass;
+	fnSetRigdBodyPosition SetRigdBodyPosition;
+	fnSetRigdBodyPositionAndRotation SetRigdBodyPositionAndRotation;
+	fnSetRigdBodyAngularDamping SetRigdBodyAngularDamping;
+	fnSetRigdBodyLinearDampin SetRigdBodyLinearDampin;
+	fnDestroyRigdBody DestroyRigdBody;
+	fnSetRigdBodyMotionType SetRigdBodyMotionType;
+
+	fnComputeShapeVolumeMassProperties ComputeShapeVolumeMassProperties;
+	fnComputeBoxSurfaceMassProperties ComputeBoxSurfaceMassProperties;
+	fnComputeBoxVolumeMassProperties ComputeBoxVolumeMassProperties;
+	fnComputeCapsuleVolumeMassProperties ComputeCapsuleVolumeMassProperties;
+	fnComputeCylinderVolumeMassProperties ComputeCylinderVolumeMassProperties;
+	fnComputeSphereVolumeMassProperties ComputeSphereVolumeMassProperties;
+	fnComputeSphereSurfaceMassProperties ComputeSphereSurfaceMassProperties;
+	fnComputeTriangleSurfaceMassProperties ComputeTriangleSurfaceMassProperties;
+
+	fnCreateBoxShape CreateBoxShape;
+	fnCreateSphereShape CreateSphereShape;
+	fnCreateCapsuleShape CreateCapsuleShape;
+	fnCreateCylindeShape CreateCylindeShape;
+	fnCreateTriangleShape CreateTriangleShape;
+	fnCreateConvexVerticesShape CreateConvexVerticesShape;
+	fnCreateConvexTranslateShape CreateConvexTranslateShape;
+	fnCreateConvexTransformShape CreateConvexTransformShape;
+	fnCreateListShape CreateListShape;
+	fnCreateStaticCompoundShape CreateStaticCompoundShape;
+	fnStaticCompoundShapeSetInstanceEnabled StaticCompoundShapeSetInstanceEnabled;
+	fnStaticCompoundShapeIsInstanceEnabled StaticCompoundShapeIsInstanceEnabled;
+	fnStaticCompoundShapeEnableAllInstancesAndShapeKeys StaticCompoundShapeEnableAllInstancesAndShapeKeys;
+	fnDestroyShape DestroyShape;
+};
+
+void InitSmallPool();
+void InitFunctions();
+
+void DestroySmallPool();

@@ -3,35 +3,38 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-[InitializeOnLoad]
-public class PhysicsSystemInitEditor
+namespace PhyicsRT
 {
-    static bool firstPlay = false;
-
-    static PhysicsSystemInitEditor()
+    [InitializeOnLoad]
+    public class PhysicsSystemInitEditor
     {
-        EditorApplication.pauseStateChanged += PauseStateChanged;
-        EditorApplication.quitting += Quitting;
-    }
+        static bool firstPlay = false;
 
-    static void PauseStateChanged(PauseState state)
-    {
-        if (EditorApplication.isPaused)
+        static PhysicsSystemInitEditor()
         {
-            return;
+            EditorApplication.pauseStateChanged += PauseStateChanged;
+            EditorApplication.quitting += Quitting;
         }
-        if (!(EditorApplication.isPlaying && EditorApplication.isPlayingOrWillChangePlaymode))
+
+        static void PauseStateChanged(PauseState state)
         {
-            return;
+            if (EditorApplication.isPaused)
+            {
+                return;
+            }
+            if (!(EditorApplication.isPlaying && EditorApplication.isPlayingOrWillChangePlaymode))
+            {
+                return;
+            }
+            if (firstPlay)
+            {
+                return;
+            }
+            firstPlay = true;
+            PhysicsSystemInit.DoInit();
         }
-        if (firstPlay)
-        {
-            return;
+        static void Quitting() {
+            PhysicsSystemInit.DoDestroy();
         }
-        firstPlay = true;
-        PhysicsSystemInit.DoInit();
-    }
-    static void Quitting() {
-        PhysicsSystemInit.DoDestroy();
     }
 }

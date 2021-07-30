@@ -25,19 +25,28 @@
     <ClInclude Include="targetver.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Physics_RT.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Commom.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Physics.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="MathHeader.h">
+    <ClInclude Include="PhysicsFunctions.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicsHeader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicsWorld.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicsCommon.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicsBody.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicsShape.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SimpleLinkedList.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -48,22 +57,20 @@
     <ClCompile Include="dllmain.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Physics_RT.cpp">
+    <ClCompile Include="PhysicsMain.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Commom.cpp">
+    <ClCompile Include="PhysicsWorld.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Physics.cpp">
+    <ClCompile Include="PhysicsFunctions.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="MathHeader.cpp">
+    <ClCompile Include="PhysicsBody.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Physics_RT.rc">
-      <Filter>资源文件</Filter>
-    </ResourceCompile>
+    <ClCompile Include="PhysicsShape.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

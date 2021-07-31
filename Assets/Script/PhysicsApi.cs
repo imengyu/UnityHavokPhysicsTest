@@ -43,8 +43,14 @@ namespace PhyicsRT
             public IntPtr SetRigdBodyCenterOfMass;
             public IntPtr SetRigdBodyPosition;
             public IntPtr SetRigdBodyPositionAndRotation;
-            public IntPtr SetRigdBodyAngularDamping;
             public IntPtr SetRigdBodyLinearDampin;
+            public IntPtr SetRigdBodyAngularDamping;
+            public IntPtr SetRigdBodyMotionType;
+	        public IntPtr SetRigdBodyGravityFactor;
+            public IntPtr GetConvexHullResultTriangles;
+            public IntPtr GetConvexHullResultVertices;
+            public IntPtr Build3DPointsConvexHull;
+            public IntPtr Build3DFromPlaneConvexHull;
             public IntPtr DestroyRigdBody;
             public IntPtr ComputeShapeVolumeMassProperties;
             public IntPtr ComputeBoxSurfaceMassProperties;
@@ -60,6 +66,7 @@ namespace PhyicsRT
             public IntPtr CreateCylindeShape;
             public IntPtr CreateTriangleShape;
             public IntPtr CreateConvexVerticesShape;
+            public IntPtr CreateConvexVerticesShapeByConvexHullResult;
             public IntPtr CreateConvexTranslateShape;
             public IntPtr CreateConvexTransformShape;
             public IntPtr CreateListShape;
@@ -116,7 +123,7 @@ namespace PhyicsRT
             initAllApi(apiStruct);
         }
 
-        #region API初始化
+        `   #region API初始化
 
         /// <summary>
         /// 所有的API
@@ -146,7 +153,13 @@ namespace PhyicsRT
             API.SetRigdBodyCenterOfMass = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyCenterOfMass>(apiStruct.SetRigdBodyCenterOfMass);
             API.SetRigdBodyPosition = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyPosition>(apiStruct.SetRigdBodyPosition);
             API.SetRigdBodyPositionAndRotation = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyPositionAndRotation>(apiStruct.SetRigdBodyPositionAndRotation);
+            API.SetRigdBodyMotionType = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyMotionType>(apiStruct.SetRigdBodyMotionType);
+            API.SetRigdBodyGravityFactor = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyGravityFactor>(apiStruct.SetRigdBodyGravityFactor);
             API.DestroyRigdBody = Marshal.GetDelegateForFunctionPointer<fnDestroyRigdBody>(apiStruct.DestroyRigdBody);
+            API.GetConvexHullResultTriangles = Marshal.GetDelegateForFunctionPointer<fnGetConvexHullResultTriangles>(apiStruct.GetConvexHullResultTriangles);
+            API.GetConvexHullResultVertices = Marshal.GetDelegateForFunctionPointer<fnGetConvexHullResultVertices>(apiStruct.GetConvexHullResultVertices);
+            API.Build3DPointsConvexHull = Marshal.GetDelegateForFunctionPointer<fnBuild3DPointsConvexHull>(apiStruct.Build3DPointsConvexHull);
+            API.Build3DFromPlaneConvexHull = Marshal.GetDelegateForFunctionPointer<fnBuild3DFromPlaneConvexHull>(apiStruct.Build3DFromPlaneConvexHull);
             API.ComputeShapeVolumeMassProperties = Marshal.GetDelegateForFunctionPointer<fnComputeShapeVolumeMassProperties>(apiStruct.ComputeShapeVolumeMassProperties);
             API.ComputeBoxSurfaceMassProperties = Marshal.GetDelegateForFunctionPointer<fnComputeBoxSurfaceMassProperties>(apiStruct.ComputeBoxSurfaceMassProperties);
             API.ComputeBoxVolumeMassProperties = Marshal.GetDelegateForFunctionPointer<fnComputeBoxVolumeMassProperties>(apiStruct.ComputeBoxVolumeMassProperties);
@@ -162,6 +175,7 @@ namespace PhyicsRT
             API.CreateTriangleShape = Marshal.GetDelegateForFunctionPointer<fnCreateTriangleShape>(apiStruct.CreateTriangleShape);
             API.CreateCylindeShape = Marshal.GetDelegateForFunctionPointer<fnCreateCylindeShape>(apiStruct.CreateCylindeShape);
             API.CreateConvexVerticesShape = Marshal.GetDelegateForFunctionPointer<fnCreateConvexVerticesShape>(apiStruct.CreateConvexVerticesShape);
+            API.CreateConvexVerticesShapeByConvexHullResult = Marshal.GetDelegateForFunctionPointer<fnCreateConvexVerticesShapeByConvexHullResult>(apiStruct.CreateConvexVerticesShapeByConvexHullResult);
             API.CreateConvexTranslateShape = Marshal.GetDelegateForFunctionPointer<fnCreateConvexTranslateShape>(apiStruct.CreateConvexTranslateShape);
             API.CreateConvexTransformShape = Marshal.GetDelegateForFunctionPointer<fnCreateConvexTransformShape>(apiStruct.CreateConvexTransformShape);
             API.CreateListShape = Marshal.GetDelegateForFunctionPointer<fnCreateListShape>(apiStruct.CreateListShape);
@@ -200,6 +214,12 @@ namespace PhyicsRT
             public fnSetRigdBodyLinearDampin SetRigdBodyLinearDampin;
             public fnSetRigdBodyPosition SetRigdBodyPosition;
             public fnSetRigdBodyPositionAndRotation SetRigdBodyPositionAndRotation;
+            public fnSetRigdBodyMotionType SetRigdBodyMotionType;
+	        public fnSetRigdBodyGravityFactor SetRigdBodyGravityFactor;
+            public fnGetConvexHullResultTriangles GetConvexHullResultTriangles;
+            public fnGetConvexHullResultVertices GetConvexHullResultVertices;
+            public fnBuild3DPointsConvexHull Build3DPointsConvexHull;
+            public fnBuild3DFromPlaneConvexHull Build3DFromPlaneConvexHull;
             public fnDestroyRigdBody DestroyRigdBody;
             public fnComputeShapeVolumeMassProperties ComputeShapeVolumeMassProperties;
             public fnComputeBoxSurfaceMassProperties ComputeBoxSurfaceMassProperties;
@@ -215,6 +235,7 @@ namespace PhyicsRT
             public fnCreateCylindeShape CreateCylindeShape;
             public fnCreateTriangleShape CreateTriangleShape;
             public fnCreateConvexVerticesShape CreateConvexVerticesShape;
+            public fnCreateConvexVerticesShapeByConvexHullResult CreateConvexVerticesShapeByConvexHullResult;
             public fnCreateConvexTranslateShape CreateConvexTranslateShape;
             public fnCreateConvexTransformShape CreateConvexTransformShape;
             public fnCreateListShape CreateListShape;
@@ -270,7 +291,19 @@ namespace PhyicsRT
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void fnSetRigdBodyPositionAndRotation(IntPtr /* sPhysicsRigdbody* */ body, IntPtr /* spVec3 */ pos, IntPtr /* spVec4 */ roate);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate void fnDestroyRigdBody(IntPtr /* sPhysicsRigdbody* */ world, IntPtr /* sPhysicsRigdbody* */ body);
+        public delegate void fnSetRigdBodyMotionType(IntPtr /* sPhysicsRigdbody* */ body, int newState);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate void fnDestroyRigdBody(IntPtr /* sPhysicsWorld* */ world, IntPtr /* sPhysicsRigdbody* */ body);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate void fnSetRigdBodyGravityFactor(IntPtr /* sPhysicsRigdbody* */ body, float gravityFactor);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate void fnGetConvexHullResultTriangles(IntPtr /* sConvexHullResult* */ result, IntPtr /* float* */ trianglesBuffer, int count);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate void fnGetConvexHullResultVertices(IntPtr /* sConvexHullResult* */ result, IntPtr /* float* */ pointsBuffer, int numPoints);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate IntPtr /* sConvexHullResult* */ fnBuild3DPointsConvexHull (IntPtr /* float* */ points, int numPoints);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate IntPtr /* sConvexHullResult* */ fnBuild3DFromPlaneConvexHull(IntPtr /* float* */ panels, int numPanels);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate IntPtr /* sPhysicsRigdbodyMassProperties* */ fnComputeShapeVolumeMassProperties(IntPtr /* sPhysicsShape* */ shape, float mass);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -300,6 +333,8 @@ namespace PhyicsRT
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate IntPtr /* sPhysicsShape* */ fnCreateConvexVerticesShape(IntPtr /* float* */ vertices, int numVertices, float convexRadius);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate IntPtr fnCreateConvexVerticesShapeByConvexHullResult(IntPtr /* sConvexHullResult* */ result, float convexRadius);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate IntPtr /* sPhysicsShape* */ fnCreateConvexTranslateShape(IntPtr /* sPhysicsShape* */ child, IntPtr /* spVec3 */ translation);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate IntPtr /* sPhysicsShape* */ fnCreateConvexTransformShape(IntPtr /* sPhysicsShape* */ child, IntPtr /* spTransform */ transform);
@@ -325,6 +360,19 @@ namespace PhyicsRT
         public delegate void fnSetPhysicsWorldGravity(IntPtr /* sPhysicsRigdbody* */ world, IntPtr /* spVec3 */ gravity);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate int fnReadPhysicsWorldBodys(IntPtr /* sPhysicsRigdbody* */ world, IntPtr /* float* */ buffer, int count);
+
+        #endregion
+
+        #region 结构体和枚举定义
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct sConvexHullResult
+        {
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8, ArraySubType = UnmanagedType.R4)]
+            float[] aabb; //min(4) max(4) 
+            int verticesCount;
+            int trianglesCount;
+        };
 
         #endregion
     }

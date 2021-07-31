@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using PhyicsRT;
 using Unity.Mathematics;
 using Unity.Physics.Editor;
@@ -25,7 +27,7 @@ public class PhysicsShapeEditorTool : EditorTool
 
   public override GUIContent toolbarIcon
   {
-      get { return EditorGUIUtility.IconContent("EditCollider"); }
+    get { return EditorGUIUtility.IconContent("EditCollider"); }
   }
 
   public override void OnActivated()
@@ -150,24 +152,79 @@ public class PhysicsShapeEditorTool : EditorTool
             }
             break;
           }
-        case ShapeType.Mesh:
-          if (Event.current.type != EventType.Repaint)
-            break;
-          //var points = GetPreviewData(shape).Edges;
-          //if (points.Length > 0)
-          //    Handles.DrawLines(points);
-          break;
         case ShapeType.ConvexHull:
-          if (Event.current.type != EventType.Repaint)
+        case ShapeType.Mesh:
+          {
+            if (Event.current.type != EventType.Repaint)
+              break;
+            var points = GetPreviewData(shape).Edges;
+            if (points != null && points.Length > 0)
+              Handles.DrawLines(points);
             break;
-          //var points = GetPreviewData(shape).Edges;
-          //if (points.Length > 0)
-          //    Handles.DrawLines(points);
-          break;
-        default:
-          throw new System.Exception("Not support type" + shape.ShapeType);
+          }
       }
     }
     base.OnToolGUI(window);
+  }
+
+  public class PreviewMeshData : IDisposable
+  {
+    private bool disposedValue;
+
+    protected virtual void Dispose(bool disposing)
+    {
+      if (!disposedValue)
+      {
+        if (disposing)
+        {
+          // TODO: 释放托管状态(托管对象)
+        }
+
+        // TODO: 释放未托管的资源(未托管的对象)并重写终结器
+        // TODO: 将大型字段设置为 null
+        disposedValue = true;
+      }
+    }
+
+    ~PreviewMeshData()
+    {
+      Dispose(disposing: false);
+    }
+
+    public void Dispose()
+    {
+      Dispose(disposing: true);
+      GC.SuppressFinalize(this);
+    }
+
+    public void SchedulePreviewIfChanged(PhysicsShape shape) {
+
+    }
+
+    public Vector3[] Edges {
+      get {
+        return null;
+      }
+    }
+  }
+
+  private Dictionary<PhysicsShape, PreviewMeshData> m_PreviewData = new Dictionary<PhysicsShape, PreviewMeshData>();
+
+  public PreviewMeshData GetPreviewData(PhysicsShape shape)
+  {
+    if (shape.ShapeType != ShapeType.ConvexHull && shape.ShapeType != ShapeType.Mesh)
+      return null;
+
+    if (!m_PreviewData.TryGetValue(shape, out var preview))
+    {
+      preview = m_PreviewData[shape] = new PreviewMeshData();
+      preview.SchedulePreviewIfChanged(shape);
+    }
+
+    // do not generate a new preview until the user has finished dragging a control handle (e.g., scale)
+    if (m_DraggingControlID == 0 && !EditorGUIUtility.editingTextField)
+      preview.SchedulePreviewIfChanged(shape);
+
+    return preview;
   }
 }

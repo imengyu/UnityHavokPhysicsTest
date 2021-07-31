@@ -7,6 +7,7 @@ struct sPhysicsShape;
 
 struct sPhysicsRigdbody {
 	hkpRigidBody* rigidBody;
+	unsigned int id;
 	struct sPhysicsRigdbody* prev;
 	struct sPhysicsRigdbody* next;
 };
@@ -30,6 +31,7 @@ typedef void(__cdecl* fnSetRigdBodyAngularDamping)(sPhysicsRigdbody* body, float
 typedef void(__cdecl* fnSetRigdBodyLinearDampin)(sPhysicsRigdbody* body, float linearDamping);
 typedef void(__cdecl* fnDestroyRigdBody)(sPhysicsWorld* world, sPhysicsRigdbody* body);
 typedef void(__cdecl* fnSetRigdBodyMotionType)(sPhysicsRigdbody* body, int newState);
+typedef void(__cdecl* fnSetRigdBodyGravityFactor)(sPhysicsRigdbody* body, float gravityFactor);
 
 sPhysicsRigdbody* CreateRigdBody(sPhysicsWorld* world, sPhysicsShape* shape, spVec3 position,
 	int motionType, int qualityType, float friction, float restitution, float mass, int active,
@@ -46,6 +48,7 @@ void SetRigdBodyPosition(sPhysicsRigdbody* body, spVec3 pos);
 void SetRigdBodyPositionAndRotation(sPhysicsRigdbody* body, spVec3 pos, spVec4 roate);
 void SetRigdBodyAngularDamping(sPhysicsRigdbody* body, float angularDamping);
 void SetRigdBodyLinearDampin(sPhysicsRigdbody* body, float linearDamping);
+void SetRigdBodyGravityFactor(sPhysicsRigdbody* body, float gravityFactor);
 void DestroyRigdBody(sPhysicsWorld* world, sPhysicsRigdbody* body);
 
 typedef sPhysicsRigdbodyMassProperties* (__cdecl* fnComputeShapeVolumeMassProperties)(sPhysicsShape* shape, float mass);

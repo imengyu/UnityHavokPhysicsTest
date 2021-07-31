@@ -152,7 +152,7 @@ int ReadPhysicsWorldBodys(sPhysicsWorld* world, float *buffer, int count)
 		auto &pos = ptr->rigidBody->getPosition();
 		auto &rot = ptr->rigidBody->getRotation();
 
-		currentPos = currentCount * 7;
+		currentPos = currentCount * 8;
 		buffer[currentPos] = pos.getComponent(0);
 		buffer[currentPos + 1] = pos.getComponent(1);
 		buffer[currentPos + 2] = pos.getComponent(2);
@@ -161,6 +161,8 @@ int ReadPhysicsWorldBodys(sPhysicsWorld* world, float *buffer, int count)
 		buffer[currentPos + 4] = rot.getComponent<1>();
 		buffer[currentPos + 5] = rot.getComponent<2>();
 		buffer[currentPos + 6] = rot.getComponent<3>();
+
+		buffer[currentPos + 7] = ptr->id;
 
 		currentCount++;
 		ptr = ptr->next;

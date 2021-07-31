@@ -53,6 +53,46 @@ namespace PhyicsRT
         /// </summary>
         Character,
     }
+    public enum CollidableQualityType
+    {
+        /// Use this for fixed bodies.
+        HK_COLLIDABLE_QUALITY_FIXED = 0,
+
+        /// Use this for moving objects with infinite mass.
+        HK_COLLIDABLE_QUALITY_KEYFRAMED,
+
+        /// Use this for all your debris objects.
+        HK_COLLIDABLE_QUALITY_DEBRIS,
+
+        /// Use this for debris objects that should have simplified TOI collisions with fixed/landscape objects.
+        HK_COLLIDABLE_QUALITY_DEBRIS_SIMPLE_TOI,
+
+        /// Use this for moving bodies, which should not leave the world,
+        /// but you rather prefer those objects to tunnel through the world than
+        /// dropping frames because the engine .
+        HK_COLLIDABLE_QUALITY_MOVING,
+
+        /// Use this for all objects, which you cannot afford to tunnel through
+        /// the world at all.
+        HK_COLLIDABLE_QUALITY_CRITICAL,
+
+        /// Use this for very fast objects.
+        HK_COLLIDABLE_QUALITY_BULLET,
+
+        /// For user. If you want to use this, you have to modify hkpCollisionDispatcher::initCollisionQualityInfo()
+        HK_COLLIDABLE_QUALITY_USER,
+
+        /// Use this for rigid body character controllers.
+        HK_COLLIDABLE_QUALITY_CHARACTER,
+
+        /// Use this for moving objects with infinite mass which should report contact points and TOI-collisions against all other bodies, including other fixed and keyframed bodies.
+        ///
+        /// Note that only non-TOI contact points are reported in collisions against debris-quality objects.
+        HK_COLLIDABLE_QUALITY_KEYFRAMED_REPORTING,
+
+        /// End of this list
+        HK_COLLIDABLE_QUALITY_MAX
+    };
 
     [AddComponentMenu("PhysicsRT/Physics Body")]
     [DefaultExecutionOrder(150)]
@@ -60,111 +100,24 @@ namespace PhyicsRT
     public class PhysicsBody : MonoBehaviour {
 
         const float MinimumMass = 0.001f;
-
-        private enum hkpMotionMotionType
-        {
-            /// 
-            MOTION_INVALID,
-
-            /// A fully-simulated, movable rigid body. At construction time the engine checks
-            /// the input inertia and selects MOTION_SPHERE_INERTIA or MOTION_BOX_INERTIA as
-            /// appropriate.
-            MOTION_DYNAMIC,
-
-            /// Simulation is performed using a sphere inertia tensor. (A multiple of the
-            /// Identity matrix). The highest value of the diagonal of the rigid body's
-            /// inertia tensor is used as the spherical inertia.
-            MOTION_SPHERE_INERTIA,
-
-            /// Simulation is performed using a box inertia tensor. The non-diagonal elements
-            /// of the inertia tensor are set to zero. This is slower than the
-            /// MOTION_SPHERE_INERTIA motions, however it can produce more accurate results,
-            /// especially for long thin objects.
-            MOTION_BOX_INERTIA,
-
-            /// Simulation is not performed as a normal rigid body. During a simulation step,
-            /// the velocity of the rigid body is used to calculate the new position of the
-            /// rigid body, however the velocity is NOT updated. The user can keyframe a rigid
-            /// body by setting the velocity of the rigid body to produce the desired keyframe
-            /// positions. The hkpKeyFrameUtility class can be used to simply apply keyframes
-            /// in this way. The velocity of a keyframed rigid body is NOT changed by the
-            /// application of impulses or forces. The keyframed rigid body has an infinite
-            /// mass when viewed by the rest of the system.
-            MOTION_KEYFRAMED,
-
-            /// This motion type is used for the static elements of a game scene, e.g., the
-            /// landscape. Fixed rigid bodies are treated in a special way by the system. They
-            /// have the same effect as a rigid body with a motion of type MOTION_KEYFRAMED
-            /// and velocity 0, however they are much faster to use, incurring no simulation
-            /// overhead, except in collision with moving bodies.
-            MOTION_FIXED,
-
-            /// A box inertia motion which is optimized for thin boxes and has less stability problems
-            MOTION_THIN_BOX_INERTIA,
-
-            /// A specialized motion used for character controllers
-            MOTION_CHARACTER,
-        };
-        private enum hkpCollidableQualityType
-        {
-                /// Invalid or unassigned type. If you add a hkpRigidBody to the hkpWorld,
-                /// this type automatically gets converted to either
-                /// HK_COLLIDABLE_QUALITY_FIXED, HK_COLLIDABLE_QUALITY_KEYFRAMED or HK_COLLIDABLE_QUALITY_DEBRIS
-            HK_COLLIDABLE_QUALITY_INVALID = -1,
-
-                /// Use this for fixed bodies.
-            HK_COLLIDABLE_QUALITY_FIXED = 0,
-
-                /// Use this for moving objects with infinite mass.
-            HK_COLLIDABLE_QUALITY_KEYFRAMED,
-
-                /// Use this for all your debris objects.
-            HK_COLLIDABLE_QUALITY_DEBRIS,
-
-                /// Use this for debris objects that should have simplified TOI collisions with fixed/landscape objects.
-            HK_COLLIDABLE_QUALITY_DEBRIS_SIMPLE_TOI,
-
-                /// Use this for moving bodies, which should not leave the world,
-                /// but you rather prefer those objects to tunnel through the world than
-                /// dropping frames because the engine .
-            HK_COLLIDABLE_QUALITY_MOVING,
-
-                /// Use this for all objects, which you cannot afford to tunnel through
-                /// the world at all.
-            HK_COLLIDABLE_QUALITY_CRITICAL,
-
-                /// Use this for very fast objects.
-            HK_COLLIDABLE_QUALITY_BULLET,
-
-                /// For user. If you want to use this, you have to modify hkpCollisionDispatcher::initCollisionQualityInfo()
-            HK_COLLIDABLE_QUALITY_USER,
-
-                /// Use this for rigid body character controllers.
-            HK_COLLIDABLE_QUALITY_CHARACTER,
-
-                /// Use this for moving objects with infinite mass which should report contact points and TOI-collisions against all other bodies, including other fixed and keyframed bodies.
-                ///
-                /// Note that only non-TOI contact points are reported in collisions against debris-quality objects.
-            HK_COLLIDABLE_QUALITY_KEYFRAMED_REPORTING,
-
-                /// End of this list
-            HK_COLLIDABLE_QUALITY_MAX
-        };
-        private hkpMotionMotionType Convert(MotionMotionType m) {
+    
+        private int Convert(MotionMotionType m) {
             switch(m) {
-                case MotionMotionType.BoxInertia: return hkpMotionMotionType.MOTION_BOX_INERTIA;
-                case MotionMotionType.Character: return hkpMotionMotionType.MOTION_CHARACTER;
-                case MotionMotionType.Dynamic: return hkpMotionMotionType.MOTION_DYNAMIC;
-                case MotionMotionType.Fixed: return hkpMotionMotionType.MOTION_FIXED;
-                case MotionMotionType.Keyframed: return hkpMotionMotionType.MOTION_KEYFRAMED;
-                case MotionMotionType.SphereInertia: return hkpMotionMotionType.MOTION_SPHERE_INERTIA;
-                case MotionMotionType.ThinBoxInertia: return hkpMotionMotionType.MOTION_THIN_BOX_INERTIA;
+                case MotionMotionType.Dynamic: return 1;
+                case MotionMotionType.SphereInertia: return 2;
+                case MotionMotionType.BoxInertia: return 3;
+                case MotionMotionType.Keyframed: return 4;
+                case MotionMotionType.Fixed: return 5;
+                case MotionMotionType.ThinBoxInertia: return 6;
+                case MotionMotionType.Character: return 7;
             }
-            return hkpMotionMotionType.MOTION_INVALID;
+            return 0;
         }
 
         [SerializeField]
         MotionMotionType m_MotionType = MotionMotionType.Fixed;
+        [SerializeField]
+        CollidableQualityType m_CollidableQualityType = CollidableQualityType.HK_COLLIDABLE_QUALITY_FIXED;
         [SerializeField]
         float m_Mass = 1.0f;
         [SerializeField]
@@ -196,17 +149,45 @@ namespace PhyicsRT
 
         private IntPtr ptr = IntPtr.Zero;
 
-        public IntPtr Ptr => ptr;
+        /// <summary>
+        /// 获取或设置刚体的类型
+        /// </summary>
         public MotionMotionType MotionType {
             get => m_MotionType; 
             set {
                 if(m_MotionType != value) {
                     m_MotionType = value; 
                     if(ptr != IntPtr.Zero)
-                        PhysicsApi.API.SetRigdBodyFriction(ptr, Convert(m_MotionType));
+                        PhysicsApi.API.SetRigdBodyMotionType(ptr, (int)Convert(m_MotionType));
                 }
             }
         }
+        /// <summary>
+        /// 获取或设置刚体的碰撞质量（该值在创建刚体之后不能更改）
+        /// </summary>
+        public CollidableQualityType CollidableQualityType {
+            get => m_CollidableQualityType; 
+            set => m_CollidableQualityType = value;
+        }
+        /// <summary>
+        /// 获取或设置刚体的初始初始旋转速度（该值在创建刚体之后不能更改）
+        /// </summary>
+        public Vector3 InitialAngularVelocity
+        {
+            get => m_InitialAngularVelocity;
+            set => m_InitialAngularVelocity = value;
+        }
+        /// <summary>
+        /// 获取或设置刚体的初始线速度（该值在创建刚体之后不能更改）
+        /// </summary>
+        public Vector3 InitialLinearVelocity
+        {
+            get => m_InitialLinearVelocity;
+            set => m_InitialLinearVelocity = value;
+        }
+        /// <summary>
+        /// 获取或设置刚体的质量
+        /// </summary>
         public float Mass {
             get => m_Mass; 
             set {
@@ -217,72 +198,104 @@ namespace PhyicsRT
                 }
             }
         }
+        /// <summary>
+        /// 获取或设置刚体的自定义标签
+        /// </summary>
         public CustomPhysicsBodyTags CustomTags { get => m_CustomTags; set { m_CustomTags = value; } }
+        /// <summary>
+        /// 获取或设置刚体的质心
+        /// </summary>
         public Vector3 CenterOfMass {
             get => m_CenterOfMass; 
             set {
                 if(m_CenterOfMass != value) {
                     m_CenterOfMass = value; 
-                    if(ptr != IntPtr.Zero)
-                        IntPtr 
-                        PhysicsApi.API.SetRigdBodyCenterOfMass(ptr, v.Ptr);
+                    if(ptr != IntPtr.Zero) {
+                        IntPtr vptr = PhysicsApi.API.CreateVec3(value.x, value.y, value.z);
+                        PhysicsApi.API.SetRigdBodyCenterOfMass(ptr, vptr);
+                        PhysicsApi.API.DestroyVec3(vptr);
+                    }
                 }
             }
         }
+        /// <summary>
+        /// 获取或设置刚体的重力系数
+        /// </summary>
         public float GravityFactor {
             get => m_GravityFactor; 
             set {
                 if(m_GravityFactor != value) {
                     m_GravityFactor = value; 
                     if(ptr != IntPtr.Zero)
-                        using(var v = new hkVector4(m_CenterOfMass))
-                            PhysicsApi.hkpRigidBody_setGravityFactor(ptr, m_GravityFactor);
+                        PhysicsApi.API.SetRigdBodyGravityFactor(ptr, m_GravityFactor);
                 }
             }
         }
+        /// <summary>
+        /// 获取或设置刚体的线速度
+        /// </summary>
         public float LinearDamping {
             get => m_LinearDamping; 
             set {
                 if(m_LinearDamping != value) {
                     m_LinearDamping = value; 
                     if(ptr != IntPtr.Zero)
-                        PhysicsApi.hkpRigidBody_setLinearDamping(ptr, m_LinearDamping);
+                        PhysicsApi.API.SetRigdBodyLinearDampin(ptr, m_LinearDamping);
                 }
             }
         }
+        /// <summary>
+        /// 获取或设置刚体的角速度
+        /// </summary>
         public float AngularDamping {
             get => m_AngularDamping; 
             set {
                 if(m_AngularDamping != value) {
                     m_AngularDamping = value; 
                     if(ptr != IntPtr.Zero)
-                        PhysicsApi.hkpRigidBody_setAngularDamping(ptr, m_AngularDamping);
+                        PhysicsApi.API.SetRigdBodyAngularDamping(ptr, m_AngularDamping);
                 }
             }
         }
+        /// <summary>
+        /// 获取或设置刚体的摩擦力
+        /// </summary>
         public float Friction {
             get => m_Friction; 
             set {
                 if(m_Friction != value) {
                     m_Friction = value;
                     if(ptr != IntPtr.Zero)
-                        PhysicsApi.hkpRigidBody_setFriction(ptr, m_Friction);
+                        PhysicsApi.API.SetRigdBodyFriction(ptr, m_Friction);
                 }
             }
         }
+        /// <summary>
+        /// 获取或设置刚体的弹力
+        /// </summary>
         public float Restitution {
             get => m_Restitution; 
             set {
                 if(m_Restitution != value) {
                     m_Restitution = value;
                     if(ptr != IntPtr.Zero)
-                        PhysicsApi.hkpRigidBody_setRestitution(ptr, m_Restitution);
+                        PhysicsApi.API.SetRigdBodyRestitution(ptr, m_Restitution);
                 }
             }
         }
 
+        /// <summary>
+        /// 重新创建物理刚体，这将导致当前物理状态丢失
+        /// </summary>
+        public void ForceReCreateShape()
+        {
+            nextCreateForce = true;
+            DestroyBody();
+            CreateBody();
+        }
 
         private void Awake() {
+            CurrentPhysicsWorld = PhysicsWorld.GetCurrentScensePhysicsWorld();
             CreateBody();
         }
         private void OnDestroy() {
@@ -292,12 +305,12 @@ namespace PhyicsRT
         private void OnEnable()
         {
             if(ptr != IntPtr.Zero)
-                PhysicsApi.hkpEntity_activate(ptr);
+                PhysicsApi.API.ActiveRigdBody(ptr);
         }
         private void OnDisable() 
         {
             if(ptr != IntPtr.Zero)
-                PhysicsApi.hkpEntity_deactivate(ptr);
+                PhysicsApi.API.DeactiveRigdBody(ptr);
         }
         private void OnValidate()
         {
@@ -306,42 +319,70 @@ namespace PhyicsRT
             m_AngularDamping = Mathf.Max(m_AngularDamping, 0f);
         }
         
+        private PhysicsWorld CurrentPhysicsWorld = null;
+        private IntPtr currentShapeMassProperties = IntPtr.Zero;
+        private bool nextCreateForce = false;
+
+        private IntPtr GetPtr() { return ptr; }
         private IntPtr GetShapeBody() {
 
+            var shape = GetComponent<PhysicsShape>();
+            if(shape == null)
+            {
+                Debug.LogWarning("Not found PhysicsShape on this gameObject, physical function has been disabled.");
+                return IntPtr.Zero;
+            }
 
-            return IntPtr.Zero;
+            currentShapeMassProperties = shape.ComputeMassProperties(m_Mass);
+            return shape.GetShapeBody(nextCreateForce);
         }
         private void CreateBody() {
-            if(PhysicsWorld.Inastance == null)
+            if(CurrentPhysicsWorld == null || ptr != IntPtr.Zero)
                 return;
 
-            ptr = PhysicsApi.hkpRigidBody_new(
+            IntPtr posVec3Ptr = PhysicsApi.API.CreateVec3(transform.position.x, transform.position.y, transform.position.z);
+            IntPtr linearVelocityVec3Ptr = PhysicsApi.API.CreateVec3(m_InitialLinearVelocity.x, m_InitialLinearVelocity.y, m_InitialLinearVelocity.z);
+            IntPtr angularVelocityVec3Ptr = PhysicsApi.API.CreateVec3(m_InitialAngularVelocity.x, m_InitialAngularVelocity.y, m_InitialAngularVelocity.z);
+
+            ptr = PhysicsApi.API.CreateRigdBody(
+                CurrentPhysicsWorld.GetPtr(),
                 GetShapeBody(), 
-                new hkVector4(transform.position).Ptr, 
+                posVec3Ptr, 
+                Convert(m_MotionType),
+                (int)m_CollidableQualityType,
+                m_Friction,
+                m_Restitution,
                 m_Mass, 
-                Convert(m_MotionType), 
-                hkpCollidableQualityType.HK_COLLIDABLE_QUALITY_INVALID, 
+                gameObject.activeSelf ? 1 : 0, 
+                m_GravityFactor,
                 m_LinearDamping,
                 m_AngularDamping,
-                new hkVector4(m_InitialLinearVelocity).Ptr,
-                new hkVector4(m_InitialAngularVelocity).Ptr,
-                m_GravityFactor);
-            
-            using(var v = new hkVector4(m_CenterOfMass))
-                PhysicsApi.hkpRigidBody_setCenterOfMassLocal(ptr, v.Ptr);
-            PhysicsApi.hkpRigidBody_setFriction(ptr, m_Friction);
-            PhysicsApi.hkpRigidBody_setRestitution(ptr, m_Restitution);
+                linearVelocityVec3Ptr,
+                angularVelocityVec3Ptr,
+                currentShapeMassProperties);
 
-            PhysicsWorld.Inastance.AddBody(this);
+            CurrentPhysicsWorld.AddBody(this);
+
+            PhysicsApi.API.DestroyVec3(linearVelocityVec3Ptr);
+            PhysicsApi.API.DestroyVec3(angularVelocityVec3Ptr);
+            PhysicsApi.API.DestroyVec3(posVec3Ptr);
+
+            nextCreateForce = false;
         }
         private void DestroyBody() {
-            if(PhysicsWorld.Inastance == null || ptr == IntPtr.Zero)
+            if(CurrentPhysicsWorld == null || ptr == IntPtr.Zero)
                 return;
 
-            PhysicsWorld.Inastance.RemoveBody(this);
-            PhysicsApi.hkpEntity_removeReference(ptr);
+            if(currentShapeMassProperties != IntPtr.Zero)
+            {
+                PhysicsApi.API.CommonDelete(currentShapeMassProperties);
+                currentShapeMassProperties = IntPtr.Zero;
+            }
+
+            CurrentPhysicsWorld.RemoveBody(this);
+            PhysicsApi.API.DestroyRigdBody(CurrentPhysicsWorld.GetPtr(), ptr);
             ptr = IntPtr.Zero;
         }
 
-    }   
+    }
 }

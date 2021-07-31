@@ -97,5 +97,6 @@ namespace PhyicsRT
                 bodys.Remove(body);
             }
         }
+        public IntPtr GetPtr() { return physicsWorldPtr; }
     }
 }

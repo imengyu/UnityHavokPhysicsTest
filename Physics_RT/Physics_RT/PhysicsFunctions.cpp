@@ -81,6 +81,7 @@ spVec4 CreateVec4(float x, float y, float z, float w) {
 
 void DestroyVec4(const spVec4 ptr)
 {
+	CHECK_PARAM_PTR(ptr, "ptr");
 	if (smallPoolSpVec4.size() < initStruct.smallPoolSize) 
 		smallPoolSpVec4.push_back(ptr);
 	else
@@ -88,6 +89,7 @@ void DestroyVec4(const spVec4 ptr)
 }
 void DestroyVec3(const spVec3 ptr)
 {
+	CHECK_PARAM_PTR(ptr, "ptr");
 	if (smallPoolSpVec3.size() < initStruct.smallPoolSize)
 		smallPoolSpVec3.push_back(ptr);
 	else
@@ -95,6 +97,7 @@ void DestroyVec3(const spVec3 ptr)
 }
 void DestroyTransform(const spTransform ptr)
 {
+	CHECK_PARAM_PTR(ptr, "ptr");
 	if (smallPoolSpTransform.size() < initStruct.smallPoolSize)
 		smallPoolSpTransform.push_back(ptr);
 	else
@@ -103,12 +106,23 @@ void DestroyTransform(const spTransform ptr)
 
 void CommonDelete(const void* ptr)
 {
+	CHECK_PARAM_PTR(ptr, "ptr");
 	delete ptr;
 }
-hkVector4 Vec3TohkVec4(const spVec3 vec3) { return hkVector4(vec3->x, vec3->y, vec3->z);  }
-hkVector4 Vec4TohkVec4(const spVec4 vec4) { return hkVector4(vec4->x, vec4->y, vec4->z, vec4->w); }
-hkQuaternion Vec4TohkQuaternion(const spVec4 vec4) { return hkQuaternion(vec4->x, vec4->y, vec4->z, vec4->w); }
+hkVector4 Vec3TohkVec4(const spVec3 vec3) {
+	CHECK_PARAM_PTR_RET(vec3, "vec3", hkVector4());
+	return hkVector4(vec3->x, vec3->y, vec3->z);  
+}
+hkVector4 Vec4TohkVec4(const spVec4 vec4) {
+	CHECK_PARAM_PTR_RET(vec4, "vec4", hkVector4());
+	return hkVector4(vec4->x, vec4->y, vec4->z, vec4->w); 
+}
+hkQuaternion Vec4TohkQuaternion(const spVec4 vec4) { 
+	CHECK_PARAM_PTR_RET(vec4, "vec4", hkQuaternion());
+	return hkQuaternion(vec4->x, vec4->y, vec4->z, vec4->w); 
+}
 hkQsTransform TransformTohkQsTransform(const spTransform transform) {
+	CHECK_PARAM_PTR_RET(transform, "transform", hkQsTransform());
 	return hkQsTransform(
 		hkVector4(transform->positionX, transform->positionY, transform->positionZ),
 		hkQuaternion(transform->rotationX, transform->rotationY, transform->rotationZ, transform->rotationW),
@@ -152,6 +166,13 @@ void InitFunctions()
 	funStruct.SetRigdBodyLinearDampin = SetRigdBodyLinearDampin;
 	funStruct.SetRigdBodyAngularDamping = SetRigdBodyAngularDamping;
 	funStruct.SetRigdBodyMotionType = SetRigdBodyMotionType;
+	funStruct.SetRigdBodyGravityFactor = SetRigdBodyGravityFactor;
+
+	funStruct.GetConvexHullResultTriangles = GetConvexHullResultTriangles;
+	funStruct.GetConvexHullResultVertices = GetConvexHullResultVertices;
+	funStruct.Build3DPointsConvexHull = Build3DPointsConvexHull;
+	funStruct.Build3DFromPlaneConvexHull = Build3DFromPlaneConvexHull;
+
 	funStruct.DestroyRigdBody = DestroyRigdBody;
 
 	funStruct.ComputeShapeVolumeMassProperties = ComputeShapeVolumeMassProperties;
@@ -169,6 +190,7 @@ void InitFunctions()
 	funStruct.CreateCylindeShape = CreateCylindeShape;
 	funStruct.CreateTriangleShape = CreateTriangleShape;
 	funStruct.CreateConvexVerticesShape = CreateConvexVerticesShape;
+	funStruct.CreateConvexVerticesShapeByConvexHullResult = CreateConvexVerticesShapeByConvexHullResult;
 	funStruct.CreateConvexTranslateShape = CreateConvexTranslateShape;
 	funStruct.CreateConvexTransformShape = CreateConvexTransformShape;
 	funStruct.CreateListShape = CreateListShape;

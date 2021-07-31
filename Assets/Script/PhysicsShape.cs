@@ -1,17 +1,21 @@
 using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace PhyicsRT
 {
     public enum ShapeType
     {
-        Box = 0,
-        Sphere = 1,
-        Capsule = 2,
-        Cylinder = 3,
-        Plane = 4,
-        ConvexHull = 5,
-        Mesh = 6
+        Box,
+        Sphere,
+        Capsule,
+        Cylinder,
+        Plane,
+        ConvexHull,
+        Mesh,
+        List,
+        StaticCompound,
     }
     public enum ShapeWrap
     {
@@ -21,15 +25,15 @@ namespace PhyicsRT
     }
 
     [AddComponentMenu("PhysicsRT/Physics Shape")]
-    [DefaultExecutionOrder(100)]
+    [DefaultExecutionOrder(110)]
     [DisallowMultipleComponent]
     public class PhysicsShape : MonoBehaviour
     {
         [SerializeField]
-        [Tooltip("Defines the object’s shape and size for collision detection purposes.")]
+        [Tooltip("为碰撞检测目的定义对象的形状和大小。")]
         private ShapeType m_ShapeType = ShapeType.Box;
         [SerializeField]
-        [Tooltip("Wrap other convex shapes with an additional transform.")]
+        [Tooltip("使用附加变换包裹其他凸面形状。")]
         private ShapeWrap m_Wrap = ShapeWrap.None;
 
         [SerializeField]
@@ -55,16 +59,12 @@ namespace PhyicsRT
         [SerializeField]
         private int m_ShapeSideCount = 32;
         [SerializeField]
-        [Tooltip(
-            "Specifies the minimum weight of a skinned vertex assigned to this shape and/or its transform children required for it to be included for automatic detection. " +
-            "A value of 0 will include all points with any weight assigned to this shape's hierarchy."
-        )]
+        [Tooltip("指定指定给此形状的蒙皮顶点的最小权重和/或自动检测所需的变换子级。值为0时，将包括所有具有指定给此形状层次的任何权重的点。")]
         [Range(0f, 1f)]
         private float m_MinimumSkinnedVertexWeight = 0.1f;
         private IntPtr ptr = IntPtr.Zero;
         private IntPtr shapeRealPtr = IntPtr.Zero;
 
-        public IntPtr Ptr => ptr;
         public ShapeType ShapeType => m_ShapeType;
         public ShapeWrap Wrap => m_Wrap;
         public Mesh ShapeMesh { get => m_ShapeMesh; set => m_ShapeMesh = value; }
@@ -84,7 +84,6 @@ namespace PhyicsRT
                 var m = GetComponent<MeshFilter>();
                 if(m != null) m_ShapeMesh = m.mesh;
             }
-            CreateShape();
         }
         private void OnDestroy() {
             DestroyShape();
@@ -97,28 +96,181 @@ namespace PhyicsRT
             m_ShapeHeight = Mathf.Max(m_ShapeHeight, 0f);
         }
 
-        public void CreateShape() {
+        public IntPtr GetPtr() { return ptr; }
+        public IntPtr ComputeMassProperties(float mass)
+        {
+            IntPtr result = IntPtr.Zero;
+            switch (ShapeType)
+            {
+                case ShapeType.Box:
+                    {
+                        IntPtr sizePtr = PhysicsApi.API.CreateVec3(ShapeSize.x, ShapeSize.y, ShapeSize.z);
+                        result = PhysicsApi.API.ComputeBoxVolumeMassProperties(sizePtr, mass);
+                        PhysicsApi.API.DestroyVec3(sizePtr);
+                        break;
+                    }
+                case ShapeType.Sphere:
+                    {
+                        result = PhysicsApi.API.ComputeSphereVolumeMassProperties(ShapeRadius, mass);
+                        break;
+                    }
+                case ShapeType.Capsule:
+                    {
+                        IntPtr posPtrStart = PhysicsApi.API.CreateVec3(0, ShapeHeight / 2, 0);
+                        IntPtr posPtrEnd = PhysicsApi.API.CreateVec3(0, -ShapeHeight / 2, 0);
+                        result = PhysicsApi.API.ComputeCapsuleVolumeMassProperties(posPtrStart, posPtrEnd, ShapeRadius, mass);
+                        PhysicsApi.API.DestroyVec3(posPtrEnd);
+                        PhysicsApi.API.DestroyVec3(posPtrStart);
+                        break;
+                    }
+                case ShapeType.Cylinder:
+                    {
+                        IntPtr posPtrStart = PhysicsApi.API.CreateVec3(0, ShapeHeight / 2, 0);
+                        IntPtr posPtrEnd = PhysicsApi.API.CreateVec3(0, -ShapeHeight / 2, 0);
+                        result = PhysicsApi.API.ComputeCylinderVolumeMassProperties(posPtrStart, posPtrEnd, ShapeRadius, mass);
+                        PhysicsApi.API.DestroyVec3(posPtrEnd);
+                        PhysicsApi.API.DestroyVec3(posPtrStart);
+                        break;
+                    }
+                case ShapeType.Plane:
+                    {
+                        IntPtr sizePtr = PhysicsApi.API.CreateVec3(ShapeSize.x, 0, ShapeSize.z);
+                        result = PhysicsApi.API.ComputeBoxVolumeMassProperties(sizePtr, mass);
+                        PhysicsApi.API.DestroyVec3(sizePtr);
+                        break;
+                    }
+                case ShapeType.ConvexHull:
+                case ShapeType.Mesh:
+                case ShapeType.List:
+                    {
+                        result = PhysicsApi.API.ComputeShapeVolumeMassProperties(ptr, mass);
+                        break;
+                    }
+                case ShapeType.StaticCompound:
+                    break;
+            }
+            return result;
+        }
+
+        private void CreateShape(bool forceRecreate) {
 
             //Create base shape
-            switch(m_ShapeType) {
+            switch (m_ShapeType)
+            {
                 case ShapeType.Box:
-                    
-                    break;
-                case ShapeType.Capsule:
-                   
-                    break;
-                case ShapeType.ConvexHull:
-                    break;
-                case ShapeType.Cylinder:
-                   
-                    break;
-                case ShapeType.Mesh:
-                    break;
+                    {
+                        IntPtr sizePtr = PhysicsApi.API.CreateVec3(ShapeSize.x, ShapeSize.y, ShapeSize.z);
+                        shapeRealPtr = PhysicsApi.API.CreateBoxShape(sizePtr, ShapeConvexRadius);
+                        PhysicsApi.API.DestroyVec3(sizePtr);
+                        break;
+                    }
                 case ShapeType.Plane:
-                    break;
+                    {
+                        IntPtr sizePtr = PhysicsApi.API.CreateVec3(ShapeSize.x, 0, ShapeSize.z);
+                        shapeRealPtr = PhysicsApi.API.CreateBoxShape(sizePtr, ShapeConvexRadius);
+                        PhysicsApi.API.DestroyVec3(sizePtr);
+                        break;
+                    }
+                case ShapeType.Capsule:
+                    {
+                        IntPtr posPtrStart = PhysicsApi.API.CreateVec3(0, ShapeHeight / 2, 0);
+                        IntPtr posPtrEnd = PhysicsApi.API.CreateVec3(0, -ShapeHeight / 2, 0);
+                        shapeRealPtr = PhysicsApi.API.CreateCapsuleShape(posPtrStart, posPtrEnd, ShapeRadius);
+                        PhysicsApi.API.DestroyVec3(posPtrEnd);
+                        PhysicsApi.API.DestroyVec3(posPtrStart);
+                        break;
+                    }
+                case ShapeType.Cylinder:
+                    {
+                        IntPtr posPtrStart = PhysicsApi.API.CreateVec3(0, ShapeHeight / 2, 0);
+                        IntPtr posPtrEnd = PhysicsApi.API.CreateVec3(0, -ShapeHeight / 2, 0);
+                        shapeRealPtr = PhysicsApi.API.CreateCylindeShape(posPtrStart, posPtrEnd, ShapeRadius, ShapeConvexRadius);
+                        PhysicsApi.API.DestroyVec3(posPtrEnd);
+                        PhysicsApi.API.DestroyVec3(posPtrStart);
+                        break;
+                    }
                 case ShapeType.Sphere:
-                    
-                    break;
+                    {
+                        shapeRealPtr = PhysicsApi.API.CreateSphereShape(ShapeRadius);
+                        break;
+                    }
+                case ShapeType.ConvexHull:
+                    {
+                        Mesh mesh = ShapeMesh;
+                        if (mesh == null)
+                        {
+                            Debug.LogWarning("ConvexHull need a mesh");
+                            return;
+                        }
+
+                        //To HGlobal
+                        float[] verticesArr = new float[mesh.vertices.Length * 3];
+                        for (int i = 0; i < mesh.vertices.Length; i++)
+                        {
+                            verticesArr[i * 3 + 0] = mesh.vertices[i].x;
+                            verticesArr[i * 3 + 1] = mesh.vertices[i].y;
+                            verticesArr[i * 3 + 2] = mesh.vertices[i].z;
+                        }
+                        int bufferSize = Marshal.SizeOf(verticesArr);
+                        IntPtr verticesBuffer = Marshal.AllocHGlobal(bufferSize);
+                        Marshal.Copy(verticesArr, 0, verticesBuffer, verticesArr.Length);
+
+                        IntPtr convexHullResult = PhysicsApi.API.Build3DPointsConvexHull(verticesBuffer, mesh.vertices.Length);
+                        shapeRealPtr = PhysicsApi.API.CreateConvexVerticesShapeByConvexHullResult(convexHullResult, ShapeConvexRadius);
+
+                        Marshal.FreeHGlobal(verticesBuffer);
+                        PhysicsApi.API.CommonDelete(convexHullResult);
+                        break;
+                    }
+                case ShapeType.Mesh:
+                    {
+                        Mesh mesh = ShapeMesh;
+                        if (mesh == null)
+                        {
+                            Debug.LogWarning("Shape need a mesh");
+                            return;
+                        }
+
+                        float[] verticesArr = new float[mesh.vertices.Length * 3];
+                        for (int i = 0; i < mesh.vertices.Length; i++)
+                        {
+                            verticesArr[i * 3 + 0] = mesh.vertices[i].x;
+                            verticesArr[i * 3 + 1] = mesh.vertices[i].y;
+                            verticesArr[i * 3 + 2] = mesh.vertices[i].z;
+                        }
+                        int bufferSize = Marshal.SizeOf(verticesArr);
+                        IntPtr verticesBuffer = Marshal.AllocHGlobal(bufferSize);
+                        Marshal.Copy(verticesArr, 0, verticesBuffer, verticesArr.Length);
+
+                        shapeRealPtr = PhysicsApi.API.CreateConvexVerticesShape(verticesBuffer, mesh.vertices.Length, ShapeConvexRadius);
+
+                        Marshal.FreeHGlobal(verticesBuffer);
+                        break;
+                    }
+                case ShapeType.List:
+                    {
+                        List<IntPtr> childernTransforms = null;
+                        IntPtr childTransforms = IntPtr.Zero;
+                        IntPtr childs = GetChildernShapes(forceRecreate, false, out int childCount, ref childTransforms, ref childernTransforms);
+                        PhysicsApi.API.CreateListShape(childs, childCount);
+                        Marshal.FreeHGlobal(childs);
+                        break;
+                    }
+                case ShapeType.StaticCompound:
+                    {
+                        List<IntPtr> childernTransforms = new List<IntPtr>();
+                        IntPtr childTransforms = IntPtr.Zero;
+                        IntPtr childs = GetChildernShapes(forceRecreate, true, out int childCount, ref childTransforms, ref childernTransforms);
+                        PhysicsApi.API.CreateStaticCompoundShape(childs, childTransforms, childCount);
+
+                        Marshal.FreeHGlobal(childs);
+                        Marshal.FreeHGlobal(childTransforms);
+
+                        foreach (var p in childernTransforms)
+                            PhysicsApi.API.DestroyTransform(p);
+                        childernTransforms.Clear();
+                        break;
+                    }
             }
     
             //Create Wrap shape
@@ -127,21 +279,135 @@ namespace PhyicsRT
                     ptr = shapeRealPtr;
                     break;
                 case ShapeWrap.TransformShape:
-
-                    break;
+                    {
+                        Quaternion quaternion = Quaternion.Euler(ShapeRotation.x, ShapeRotation.y, ShapeRotation.z);
+                        IntPtr posPtr = PhysicsApi.API.CreateTransform(
+                            ShapeTranslation.x, ShapeTranslation.y, ShapeTranslation.z,
+                            quaternion.x, quaternion.y, quaternion.z, quaternion.w,
+                            ShapeScale.x, ShapeScale.y, ShapeScale.z
+                        );
+                        PhysicsApi.API.CreateConvexTransformShape(shapeRealPtr, posPtr);
+                        PhysicsApi.API.DestroyTransform(posPtr);
+                        break;
+                    }
                 case ShapeWrap.TranslateShape:
+                    {
+                        IntPtr posPtr = PhysicsApi.API.CreateVec3(ShapeTranslation.x, ShapeTranslation.y, ShapeTranslation.z);
+                        PhysicsApi.API.CreateConvexTranslateShape(shapeRealPtr, posPtr);
+                        PhysicsApi.API.DestroyVec3(posPtr);
+                        break;
+                    }
+            }
+        }
+        private void DestroyShape(bool forceRecreate = false) {
+            if(ptr != shapeRealPtr) {
+                PhysicsApi.API.DestroyShape(shapeRealPtr);
+                shapeRealPtr = IntPtr.Zero;
+            }
 
+            PhysicsApi.API.DestroyShape(ptr);
+            ptr = IntPtr.Zero;
+        }
+        private IntPtr GetChildernShapes(bool forceRecreate, bool withChildTransforms, out int childCount, ref IntPtr outChildTransforms, ref List<IntPtr> childernTransforms)
+        {
+            //获取子级 PhysicsShape 的指针
+
+            List<IntPtr> childernShapes = new List<IntPtr>();
+            for (int i = 0, c = transform.childCount; i < c; i++) {
+                var shape = transform.GetChild(i).gameObject.GetComponent<PhysicsShape>();
+                if (shape != null)
+                {
+                    childernShapes.Add(shape.GetShapeBody(forceRecreate));
+
+                    if (withChildTransforms)// Child Transforms
+                    {
+                        childernTransforms.Add(PhysicsApi.API.CreateTransform(
+                            shape.transform.position.x, shape.transform.position.y, shape.transform.position.z,
+                            shape.transform.rotation.x, shape.transform.rotation.y, shape.transform.rotation.z, shape.transform.rotation.w,
+                            shape.transform.localScale.x, shape.transform.localScale.y, shape.transform.localScale.z
+                        ));
+                    }
+                }
+            }
+
+            childCount = childernShapes.Count;
+
+            var outArr = childernShapes.ToArray();
+            IntPtr outArrBuf = Marshal.AllocHGlobal(Marshal.SizeOf(outArr));
+            Marshal.Copy(outArr, 0, outArrBuf, outArr.Length);
+
+            if (withChildTransforms)
+            {
+                var outArr2 = childernTransforms.ToArray();
+                IntPtr outArrBuf2 = Marshal.AllocHGlobal(Marshal.SizeOf(outArr2));
+                Marshal.Copy(outArr2, 0, outArrBuf2, outArr2.Length);
+                outChildTransforms = outArrBuf2;
+            }
+
+            return outArrBuf;
+        }
+
+        public IntPtr GetShapeBody(bool forceRecreate)
+        {
+            if (forceRecreate && ptr != IntPtr.Zero)
+                DestroyShape(true);
+            if (ptr == IntPtr.Zero)
+                CreateShape(forceRecreate);
+            return ptr;
+        }
+        public void FitToEnabledRenderMeshes(float f) {
+            if(ShapeMesh == null)
+            {
+                Debug.LogWarning("Not found mesh in this gameObject");
+                return;
+            }
+            Bounds bounds = ShapeMesh.bounds;
+            switch (m_ShapeType)
+            {
+                case ShapeType.Box:
+                case ShapeType.Plane:
+                    ShapeSize = bounds.size;
+                    ShapeTranslation = bounds.center;
+                    break;
+                case ShapeType.Capsule:
+                case ShapeType.Cylinder:
+                    ShapeRadius = new Vector2(bounds.size.x, bounds.size.z).magnitude / 2;
+                    ShapeHeight = bounds.size.y;
+                    break;
+                case ShapeType.Sphere:
+                    ShapeRadius = bounds.size.magnitude / 2;
                     break;
             }
         }
-        public void DestroyShape() {
-            if(ptr != shapeRealPtr) {
-                
+
+        public void SetChildInstanceEnable(int id, bool enable)
+        {
+            if(m_ShapeType != ShapeType.StaticCompound)
+            {
+                Debug.LogError("Only StaticCompoundShape can use this action");
+                return;
             }
+
+            PhysicsApi.API.StaticCompoundShapeSetInstanceEnabled(shapeRealPtr, id, enable ? 1 : 0);
         }
+        public bool GetChildInstanceEnable(int id)
+        {
+            if (m_ShapeType != ShapeType.StaticCompound)
+            {
+                Debug.LogError("Only StaticCompoundShape can use this action");
+                return false;
+            }
+            return PhysicsApi.API.StaticCompoundShapeIsInstanceEnabled(shapeRealPtr, id) > 0;
+        }
+        public void EnableAllChildInstance()
+        {
+            if (m_ShapeType != ShapeType.StaticCompound)
+            {
+                Debug.LogError("Only StaticCompoundShape can use this action");
+                return;
+            }
 
-        public void FitToEnabledRenderMeshes(float f) {
-
+            PhysicsApi.API.StaticCompoundShapeEnableAllInstancesAndShapeKeys(shapeRealPtr);
         }
     }
 }

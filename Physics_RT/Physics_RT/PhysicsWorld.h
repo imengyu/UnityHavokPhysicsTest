@@ -20,7 +20,7 @@ typedef void(__cdecl* fnSetPhysicsWorldGravity)(sPhysicsWorld* world, spVec3 gra
 typedef int(__cdecl* fnReadPhysicsWorldBodys)(sPhysicsWorld* world, float* buffer, int count);
 
 
-sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize);
+sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance);
 void DestroyPhysicsWorld(sPhysicsWorld* world);
 void StepPhysicsWorld(sPhysicsWorld* world, float timestep);
 void SetPhysicsWorldGravity(sPhysicsWorld* world, spVec3 gravity);

@@ -3,6 +3,7 @@
 #include "PhysicsFunctions.h"
 
 extern sInitStruct initStruct;
+unsigned int sPhysicsRigdbodyId = 0;
 
 sPhysicsRigdbodyMassProperties* ComputeBoxSurfaceMassProperties(spVec4 halfExtents, float mass, float surfaceThickness) {
 	sPhysicsRigdbodyMassProperties* r = new sPhysicsRigdbodyMassProperties();
@@ -83,6 +84,7 @@ sPhysicsRigdbody* CreateRigdBody(sPhysicsWorld* world, sPhysicsShape* shape, spV
 
 	sPhysicsRigdbody* body = new sPhysicsRigdbody();
 	body->rigidBody = newRigidBody;
+	body->id = ++sPhysicsRigdbodyId;
 
 	world->bodyList.add(body);
 	return body;
@@ -123,6 +125,10 @@ void SetRigdBodyCenterOfMass(sPhysicsRigdbody* body, spVec3 centerOfMass)
 {
 	body->rigidBody->setCenterOfMassLocal(hkVector4(centerOfMass->x, centerOfMass->y, centerOfMass->z));
 }
+void SetRigdBodyGravityFactor(sPhysicsRigdbody* body, float gravityFactor)
+{
+	body->rigidBody->setGravityFactor(gravityFactor);
+}
 void SetRigdBodyPosition(sPhysicsRigdbody* body, spVec3 pos)
 {
 	body->rigidBody->setPosition(hkVector4(pos->x, pos->y, pos->z));
@@ -133,6 +139,10 @@ void SetRigdBodyPositionAndRotation(sPhysicsRigdbody* body, spVec3 pos, spVec4 r
 		hkVector4(pos->x, pos->y, pos->z),
 		hkQuaternion(roate->x, roate->y, roate->z, roate->w)
 	);
+}
+void SetRigdBodyPositionAndRotation(sPhysicsRigdbody* body, spVec3 pos, spVec4 roate)
+{
+	body->rigidBody->setShape
 }
 void DestroyRigdBody(sPhysicsWorld* world, sPhysicsRigdbody*body)
 {

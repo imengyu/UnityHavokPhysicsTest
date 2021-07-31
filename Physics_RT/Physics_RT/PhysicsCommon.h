@@ -9,6 +9,9 @@ struct sInitStruct {
 	int smallPoolSize;
 };
 
+#define CHECK_PARAM_PTR(param, name) if(!param) { CallbackWithError("%s is nullptr!", name); return; }
+#define CHECK_PARAM_PTR_RET(param, name, ret) if(!param) { CallbackWithError("%s is nullptr!", name); return ret; }
+
 void CallbackWithError(char*msg, ...);
 
 typedef struct sVec3 {

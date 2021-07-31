@@ -272,20 +272,22 @@ class PhysicsShapeEditor : Editor
         }
     }
     private void DrawShapeInspector() {
-        switch((ShapeType)pShapeType.enumValueIndex) {
+
+        switch ((ShapeType)pShapeType.enumValueIndex)
+        {
             case ShapeType.Box:
             case ShapeType.Sphere:
             case ShapeType.Capsule:
             case ShapeType.Cylinder:
             case ShapeType.Plane:
-                EditorGUILayout.EditorToolbarForTarget(EditorGUIUtility.TrTempContent("Edit Collider"), base.target);
-		        GUILayout.Space(5f);
-                AutomaticPrimitiveControls();
-                break;
             case ShapeType.ConvexHull:
             case ShapeType.Mesh:
+                EditorGUILayout.EditorToolbarForTarget(EditorGUIUtility.TrTempContent("Edit Collider"), base.target);
+                GUILayout.Space(5f);
+                AutomaticPrimitiveControls();
                 break;
         }
+
         switch((ShapeType)pShapeType.enumValueIndex) {
             case ShapeType.Box:
                 pShapeSize.vector3Value = EditorGUILayout.Vector3Field("Half extent", pShapeSize.vector3Value);
@@ -307,8 +309,6 @@ class PhysicsShapeEditor : Editor
                 pShapeSize.vector3Value = new Vector3(EditorGUILayout.FloatField("Width", pShapeSize.vector3Value.x), pShapeSize.vector3Value.y, EditorGUILayout.FloatField("Height", pShapeSize.vector3Value.z));
                 break;
             case ShapeType.ConvexHull:
-                pShapeMesh.objectReferenceValue = EditorGUILayout.ObjectField("Mesh", pShapeMesh.objectReferenceValue, typeof(Mesh), false);
-                break;
             case ShapeType.Mesh:
                 pShapeMesh.objectReferenceValue = EditorGUILayout.ObjectField("Mesh", pShapeMesh.objectReferenceValue, typeof(Mesh), false);
                 break;

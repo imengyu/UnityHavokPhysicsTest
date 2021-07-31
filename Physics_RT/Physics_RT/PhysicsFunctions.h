@@ -32,8 +32,15 @@ struct sApiStruct {
 	fnSetRigdBodyPositionAndRotation SetRigdBodyPositionAndRotation;
 	fnSetRigdBodyAngularDamping SetRigdBodyAngularDamping;
 	fnSetRigdBodyLinearDampin SetRigdBodyLinearDampin;
-	fnDestroyRigdBody DestroyRigdBody;
 	fnSetRigdBodyMotionType SetRigdBodyMotionType;
+	fnSetRigdBodyGravityFactor SetRigdBodyGravityFactor;
+
+	fnGetConvexHullResultTriangles GetConvexHullResultTriangles;
+	fnGetConvexHullResultVertices GetConvexHullResultVertices;
+	fnBuild3DPointsConvexHull Build3DPointsConvexHull;
+	fnBuild3DFromPlaneConvexHull Build3DFromPlaneConvexHull;
+
+	fnDestroyRigdBody DestroyRigdBody;
 
 	fnComputeShapeVolumeMassProperties ComputeShapeVolumeMassProperties;
 	fnComputeBoxSurfaceMassProperties ComputeBoxSurfaceMassProperties;
@@ -50,6 +57,7 @@ struct sApiStruct {
 	fnCreateCylindeShape CreateCylindeShape;
 	fnCreateTriangleShape CreateTriangleShape;
 	fnCreateConvexVerticesShape CreateConvexVerticesShape;
+	fnCreateConvexVerticesShapeByConvexHullResult CreateConvexVerticesShapeByConvexHullResult;
 	fnCreateConvexTranslateShape CreateConvexTranslateShape;
 	fnCreateConvexTransformShape CreateConvexTransformShape;
 	fnCreateListShape CreateListShape;

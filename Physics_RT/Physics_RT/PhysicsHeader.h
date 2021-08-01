@@ -32,26 +32,4 @@
 
 // Visual Debugger includes
 #include <Common/Visualize/hkVisualDebugger.h>
-#include <Physics2012/Utilities/VisualDebugger/hkpPhysicsContext.h>				
-
-// Keycode
-#include <Common/Base/keycode.cxx>
-
-//Lib
-#pragma comment(lib, "hkBase.lib")
-#pragma comment(lib, "hkcdCollide.lib")
-#pragma comment(lib, "hkcdInternal.lib")
-#pragma comment(lib, "hkGeometryUtilities.lib")
-#pragma comment(lib, "hkCompat.lib")
-#pragma comment(lib, "hkInternal.lib")
-#pragma comment(lib, "hkpCollide.lib")
-#pragma comment(lib, "hkpConstraint.lib")
-#pragma comment(lib, "hkpConstraintSolver.lib")
-#pragma comment(lib, "hkpDynamics.lib")
-#pragma comment(lib, "hkpInternal.lib")
-#pragma comment(lib, "hkpPhysicsMigrationUtils.lib")
-#pragma comment(lib, "hkpUtilities.lib")
-#pragma comment(lib, "hkpVehicle.lib")
-#pragma comment(lib, "hkSceneData.lib")
-#pragma comment(lib, "hkSerialize.lib")
-#pragma comment(lib, "hkVisualize.lib")
+#include <Physics2012/Utilities/VisualDebugger/hkpPhysicsContext.h>

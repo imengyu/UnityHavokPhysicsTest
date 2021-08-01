@@ -1,10 +1,11 @@
+#include "stdafx.h"
 #include "PhysicsFunctions.h"
 #include <stdarg.h>
 #include <string.h>
 #include <stdio.h>
 #include <list>
 
-extern sApiStruct funStruct;
+extern void** apiArray;
 extern sInitStruct initStruct;
 
 void CallbackWithError(char* msg, ...)
@@ -14,13 +15,59 @@ void CallbackWithError(char* msg, ...)
 		va_start(ap, msg);
 
 		size_t num_of_chars = _vscprintf(msg, ap);
-		char* buffer = new char[num_of_chars];
-		vsprintf_s(buffer, num_of_chars, msg, ap);
+		char* buffer = new char[num_of_chars + 1];
+		vsprintf_s(buffer, num_of_chars + 1, msg, ap);
 		initStruct.errCallback(buffer);
 		delete buffer;
 
 		va_end(ap);
 	}
+}
+
+bool lastHasException = false;
+char lastException[1024];
+
+//Error Report
+
+void APIErrorReport(const char* msg, void* userArgGivenToInit)
+{
+	if (initStruct.errCallback)
+		initStruct.errCallback(msg);
+
+#if defined(HK_PLATFORM_WIN32)
+#ifndef HK_PLATFORM_WINRT
+	OutputDebugStringA(msg);
+#else
+	// Unicode only 
+	int sLen = hkString::strLen(msg) + 1;
+	wchar_t* wideStr = hkAllocateStack<wchar_t>(sLen);
+	mbstowcs_s(HK_NULL, wideStr, sLen, msg, sLen - 1);
+	OutputDebugString(wideStr);
+	hkDeallocateStack<wchar_t>(wideStr, sLen);
+#endif
+#endif
+}
+
+void APICatchHandler(std::exception& e) {
+	lastHasException = true;
+#ifdef _MSC_VER
+		strcpy_s(lastException, e.what());
+#else
+		strcpy(lastException, e.what());
+#endif
+}
+
+EXTERN_C_API int checkException(char* errBuffer, size_t size) {
+	if (lastHasException) {
+#ifdef _MSC_VER
+		strcpy_s(errBuffer, size, lastException);
+#else
+		strcpy(errBuffer, lastException);
+#endif
+		lastHasException = false;
+		return true;
+	}
+	return false;
 }
 
 std::list<spTransform> smallPoolSpTransform;
@@ -31,7 +78,7 @@ spTransform CreateTransform(float px, float py, float pz, float rx, float ry, fl
 {
 	spTransform v = nullptr;
 	if (smallPoolSpTransform.size() > 0) {
-		spTransform v = smallPoolSpTransform.front();
+		v = smallPoolSpTransform.front();
 		smallPoolSpTransform.pop_front();
 	}
 	else {
@@ -52,7 +99,7 @@ spTransform CreateTransform(float px, float py, float pz, float rx, float ry, fl
 spVec3 CreateVec3(float x, float y, float z) {
 	spVec3 v = nullptr;
 	if (smallPoolSpVec3.size() > 0) {
-		spVec3 v = smallPoolSpVec3.front();
+		v = smallPoolSpVec3.front();
 		smallPoolSpVec3.pop_front();
 	}
 	else {
@@ -66,7 +113,7 @@ spVec3 CreateVec3(float x, float y, float z) {
 spVec4 CreateVec4(float x, float y, float z, float w) {
 	spVec4 v = nullptr;
 	if (smallPoolSpVec4.size() > 0) {
-		spVec4 v = smallPoolSpVec4.front();
+		v = smallPoolSpVec4.front();
 		smallPoolSpVec4.pop_front();
 	}
 	else {
@@ -82,7 +129,7 @@ spVec4 CreateVec4(float x, float y, float z, float w) {
 void DestroyVec4(const spVec4 ptr)
 {
 	CHECK_PARAM_PTR(ptr, "ptr");
-	if (smallPoolSpVec4.size() < initStruct.smallPoolSize) 
+	if (smallPoolSpVec4.size() < (size_t)initStruct.smallPoolSize) 
 		smallPoolSpVec4.push_back(ptr);
 	else
 		delete ptr;
@@ -90,7 +137,7 @@ void DestroyVec4(const spVec4 ptr)
 void DestroyVec3(const spVec3 ptr)
 {
 	CHECK_PARAM_PTR(ptr, "ptr");
-	if (smallPoolSpVec3.size() < initStruct.smallPoolSize)
+	if (smallPoolSpVec3.size() < (size_t)initStruct.smallPoolSize)
 		smallPoolSpVec3.push_back(ptr);
 	else
 		delete ptr;
@@ -98,7 +145,7 @@ void DestroyVec3(const spVec3 ptr)
 void DestroyTransform(const spTransform ptr)
 {
 	CHECK_PARAM_PTR(ptr, "ptr");
-	if (smallPoolSpTransform.size() < initStruct.smallPoolSize)
+	if (smallPoolSpTransform.size() < (size_t)initStruct.smallPoolSize)
 		smallPoolSpTransform.push_back(ptr);
 	else
 		delete ptr;
@@ -139,68 +186,70 @@ void InitSmallPool() {
 }
 void InitFunctions()
 {
-	funStruct.CommonDelete = CommonDelete;
-
-	funStruct.CreateVec3 = CreateVec3;
-	funStruct.CreateTransform = CreateTransform;
-	funStruct.CreateVec4 = CreateVec4;
-	funStruct.DestroyVec4 = DestroyVec4;
-	funStruct.DestroyVec3 = DestroyVec3;
-	funStruct.DestroyTransform = DestroyTransform;
-
-	funStruct.CreatePhysicsWorld = CreatePhysicsWorld;
-	funStruct.DestroyPhysicsWorld = DestroyPhysicsWorld;
-	funStruct.StepPhysicsWorld = StepPhysicsWorld;
-	funStruct.SetPhysicsWorldGravity = SetPhysicsWorldGravity;
-	funStruct.ReadPhysicsWorldBodys = ReadPhysicsWorldBodys;
-
-	funStruct.CreateRigdBody = CreateRigdBody;
-	funStruct.ActiveRigdBody = ActiveRigdBody;
-	funStruct.DeactiveRigdBody = DeactiveRigdBody;
-	funStruct.SetRigdBodyMass = SetRigdBodyMass;
-	funStruct.SetRigdBodyFriction = SetRigdBodyFriction;
-	funStruct.SetRigdBodyRestitution = SetRigdBodyRestitution;
-	funStruct.SetRigdBodyCenterOfMass = SetRigdBodyCenterOfMass;
-	funStruct.SetRigdBodyPosition = SetRigdBodyPosition;
-	funStruct.SetRigdBodyPositionAndRotation = SetRigdBodyPositionAndRotation;
-	funStruct.SetRigdBodyLinearDampin = SetRigdBodyLinearDampin;
-	funStruct.SetRigdBodyAngularDamping = SetRigdBodyAngularDamping;
-	funStruct.SetRigdBodyMotionType = SetRigdBodyMotionType;
-	funStruct.SetRigdBodyGravityFactor = SetRigdBodyGravityFactor;
-
-	funStruct.GetConvexHullResultTriangles = GetConvexHullResultTriangles;
-	funStruct.GetConvexHullResultVertices = GetConvexHullResultVertices;
-	funStruct.Build3DPointsConvexHull = Build3DPointsConvexHull;
-	funStruct.Build3DFromPlaneConvexHull = Build3DFromPlaneConvexHull;
-
-	funStruct.DestroyRigdBody = DestroyRigdBody;
-
-	funStruct.ComputeShapeVolumeMassProperties = ComputeShapeVolumeMassProperties;
-	funStruct.ComputeBoxSurfaceMassProperties = ComputeBoxSurfaceMassProperties;
-	funStruct.ComputeBoxVolumeMassProperties = ComputeBoxVolumeMassProperties;
-	funStruct.ComputeCapsuleVolumeMassProperties = ComputeCapsuleVolumeMassProperties;
-	funStruct.ComputeCylinderVolumeMassProperties = ComputeCylinderVolumeMassProperties;
-	funStruct.ComputeSphereVolumeMassProperties = ComputeSphereVolumeMassProperties;
-	funStruct.ComputeSphereSurfaceMassProperties = ComputeSphereSurfaceMassProperties;
-	funStruct.ComputeTriangleSurfaceMassProperties = ComputeTriangleSurfaceMassProperties;
-
-	funStruct.CreateBoxShape = CreateBoxShape;
-	funStruct.CreateSphereShape = CreateSphereShape;
-	funStruct.CreateCapsuleShape = CreateCapsuleShape;
-	funStruct.CreateCylindeShape = CreateCylindeShape;
-	funStruct.CreateTriangleShape = CreateTriangleShape;
-	funStruct.CreateConvexVerticesShape = CreateConvexVerticesShape;
-	funStruct.CreateConvexVerticesShapeByConvexHullResult = CreateConvexVerticesShapeByConvexHullResult;
-	funStruct.CreateConvexTranslateShape = CreateConvexTranslateShape;
-	funStruct.CreateConvexTransformShape = CreateConvexTransformShape;
-	funStruct.CreateListShape = CreateListShape;
-	funStruct.CreateStaticCompoundShape = CreateStaticCompoundShape;
-	funStruct.StaticCompoundShapeSetInstanceEnabled = StaticCompoundShapeSetInstanceEnabled;
-	funStruct.StaticCompoundShapeIsInstanceEnabled = StaticCompoundShapeIsInstanceEnabled;
-	funStruct.StaticCompoundShapeEnableAllInstancesAndShapeKeys = StaticCompoundShapeEnableAllInstancesAndShapeKeys;
-	funStruct.DestroyShape = DestroyShape;
+	int i = 0;
+	apiArray = new void*[256];
+	apiArray[i++] = CommonDelete;
+	apiArray[i++] = CreateVec3;
+	apiArray[i++] = CreateTransform;
+	apiArray[i++] = CreateVec4;
+	apiArray[i++] = DestroyVec4;
+	apiArray[i++] = DestroyVec3;
+	apiArray[i++] = DestroyTransform;
+	apiArray[i++] = CreatePhysicsWorld;
+	apiArray[i++] = DestroyPhysicsWorld;
+	apiArray[i++] = StepPhysicsWorld;
+	apiArray[i++] = SetPhysicsWorldGravity;
+	apiArray[i++] = ReadPhysicsWorldBodys;
+	apiArray[i++] = CreateRigdBody;
+	apiArray[i++] = ActiveRigdBody;
+	apiArray[i++] = DeactiveRigdBody;
+	apiArray[i++] = SetRigdBodyMass;
+	apiArray[i++] = SetRigdBodyFriction;
+	apiArray[i++] = SetRigdBodyRestitution;
+	apiArray[i++] = SetRigdBodyCenterOfMass;
+	apiArray[i++] = SetRigdBodyPosition;
+	apiArray[i++] = SetRigdBodyPositionAndRotation;
+	apiArray[i++] = SetRigdBodyAngularDamping;
+	apiArray[i++] = SetRigdBodyLinearDampin;
+	apiArray[i++] = SetRigdBodyMotionType;
+	apiArray[i++] = SetRigdBodyGravityFactor;
+	apiArray[i++] = GetConvexHullResultTriangles;
+	apiArray[i++] = GetConvexHullResultVertices;
+	apiArray[i++] = Build3DPointsConvexHull;
+	apiArray[i++] = Build3DFromPlaneConvexHull;
+	apiArray[i++] = DestroyRigdBody;
+	apiArray[i++] = ComputeShapeVolumeMassProperties;
+	apiArray[i++] = ComputeBoxSurfaceMassProperties;
+	apiArray[i++] = ComputeBoxVolumeMassProperties;
+	apiArray[i++] = ComputeCapsuleVolumeMassProperties;
+	apiArray[i++] = ComputeCylinderVolumeMassProperties;
+	apiArray[i++] = ComputeSphereVolumeMassProperties;
+	apiArray[i++] = ComputeSphereSurfaceMassProperties;
+	apiArray[i++] = ComputeTriangleSurfaceMassProperties;
+	apiArray[i++] = CreateBoxShape;
+	apiArray[i++] = CreateSphereShape;
+	apiArray[i++] = CreateCapsuleShape;
+	apiArray[i++] = CreateCylindeShape;
+	apiArray[i++] = CreateTriangleShape;
+	apiArray[i++] = CreateConvexVerticesShape;
+	apiArray[i++] = CreateConvexVerticesShapeByConvexHullResult;
+	apiArray[i++] = CreateConvexTranslateShape;
+	apiArray[i++] = CreateConvexTransformShape;
+	apiArray[i++] = CreateListShape;
+	apiArray[i++] = CreateStaticCompoundShape;
+	apiArray[i++] = StaticCompoundShapeSetInstanceEnabled;
+	apiArray[i++] = StaticCompoundShapeIsInstanceEnabled;
+	apiArray[i++] = StaticCompoundShapeEnableAllInstancesAndShapeKeys;
+	apiArray[i++] = DestroyShape;
+	apiArray[i++] = TestAssert;
 }
 
+void DestroyFunctions() {
+	if (apiArray) {
+		delete[] apiArray;
+		apiArray = nullptr;
+	}
+}
 void DestroySmallPool() {
 	for (auto it = smallPoolSpTransform.begin(); it != smallPoolSpTransform.end(); it++) 
 		delete* it;

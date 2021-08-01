@@ -5,8 +5,16 @@ extern hkJobQueue* jobQueue;
 extern hkJobThreadPool* threadPool;
 extern sInitStruct initStruct;
 
-sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance)
+sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance,
+	bool bContinuous, bool bVisualDebugger)
 {
+	TRY_BEGIN
+#if defined(HK_COMPILER_HAS_INTRINSICS_IA32) && HK_CONFIG_SIMD == HK_CONFIG_SIMD_ENABLED
+	// Flush all denormal/subnormal numbers (2^-1074 to 2^-1022) to zero.
+	// Typically operations on denormals are very slow, up to 100 times slower than normal numbers.
+	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+#endif
+
 	hkpWorld* physicsWorld = nullptr;
 	{
 		// The world cinfo contains global simulation parameters, including gravity, solver settings etc.
@@ -15,6 +23,9 @@ sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, floa
 		worldInfo.m_gravity = hkVector4(gravity->x, gravity->y, gravity->z);
 		worldInfo.m_solverIterations = solverIterationCount;
 		worldInfo.m_collisionTolerance = collisionTolerance;
+		worldInfo.m_simulationType = bContinuous ? 
+			(initStruct.mulithread ? hkpWorldCinfo::SIMULATION_TYPE_MULTITHREADED : hkpWorldCinfo::SIMULATION_TYPE_CONTINUOUS) : 
+			hkpWorldCinfo::SIMULATION_TYPE_DISCRETE;
 		worldInfo.m_broadPhaseBorderBehaviour = hkpWorldCinfo::BROADPHASE_BORDER_FIX_ENTITY;
 		worldInfo.setBroadPhaseWorldSize(broadPhaseWorldSize);
 
@@ -24,15 +35,10 @@ sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, floa
 			worldInfo.m_simulationType = hkpWorldCinfo::SIMULATION_TYPE_MULTITHREADED;
 			physicsWorld = new hkpWorld(worldInfo);
 
-			// Disable deactivation, so that you can view timers in the VDB. This should not be done in your game.
-			physicsWorld->m_wantDeactivation = false;
-
-
 			// When the simulation type is SIMULATION_TYPE_MULTITHREADED, in the debug build, the sdk performs checks
 			// to make sure only one thread is modifying the world at once to prevent multithreaded bugs. Each thread
 			// must call markForRead / markForWrite before it modifies the world to enable these checks.
 			physicsWorld->markForWrite();
-
 
 			// Register all collision agents, even though only box - box will be used in this particular example.
 			// It's important to register collision agents before adding any entities to the world.
@@ -52,40 +58,46 @@ sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, floa
 		}
 	}
 
+	sPhysicsWorld* def = new sPhysicsWorld();
 
-	//
-	// Initialize the VDB
-	//
-	hkArray<hkProcessContext*> contexts;
+	if (bVisualDebugger) {
+		//
+		// Initialize the VDB
+		//
+		hkArray<hkProcessContext*> contexts;
 
 
-	// <PHYSICS-ONLY>: Register physics specific visual debugger processes
-	// By default the VDB will show debug points and lines, however some products such as physics and cloth have additional viewers
-	// that can show geometries etc and can be enabled and disabled by the VDB app.
-	hkpPhysicsContext* context;
-	{
-		// The visual debugger so we can connect remotely to the simulation
-		// The context must exist beyond the use of the VDB instance, and you can make
-		// whatever contexts you like for your own viewer types.
-		context = new hkpPhysicsContext();
-		hkpPhysicsContext::registerAllPhysicsProcesses(); // all the physics viewers
-		context->addWorld(physicsWorld); // add the physics world so the viewers can see it
-		contexts.pushBack(context);
+		// <PHYSICS-ONLY>: Register physics specific visual debugger processes
+		// By default the VDB will show debug points and lines, however some products such as physics and cloth have additional viewers
+		// that can show geometries etc and can be enabled and disabled by the VDB app.
+		hkpPhysicsContext* context;
+		{
+			// The visual debugger so we can connect remotely to the simulation
+			// The context must exist beyond the use of the VDB instance, and you can make
+			// whatever contexts you like for your own viewer types.
+			context = new hkpPhysicsContext();
+			hkpPhysicsContext::registerAllPhysicsProcesses(); // all the physics viewers
+			context->addWorld(physicsWorld); // add the physics world so the viewers can see it
+			contexts.pushBack(context);
 
-		// Now we have finished modifying the world, release our write marker.
-		physicsWorld->unmarkForWrite();
+			// Now we have finished modifying the world, release our write marker.
+			physicsWorld->unmarkForWrite();
+		}
+
+		hkVisualDebugger* vdb = new hkVisualDebugger(contexts);
+		vdb->serve();
+
+		def->vdb = vdb;
+		def->context = context;
 	}
 
-	hkVisualDebugger* vdb = new hkVisualDebugger(contexts);
-	vdb->serve();
-
-	sPhysicsWorld* def = new sPhysicsWorld();
 	def->physicsWorld = physicsWorld;
-	def->vdb = vdb;
-	def->context = context;
 	return def;
+
+	TRY_END(nullptr)
 }
 void DestroyPhysicsWorld(sPhysicsWorld* world) {
+	TRY_BEGIN
 	if (world) {
 		//
 		// Clean up physics and graphics
@@ -97,23 +109,32 @@ void DestroyPhysicsWorld(sPhysicsWorld* world) {
 				world->physicsWorld->markForWrite();
 			world->physicsWorld->removeReference();
 		}
-		world->vdb->removeReference();
+		if (world->vdb) {
+			world->vdb->removeReference();
+			world->vdb = nullptr;
+		}
 
-		// Contexts are not reference counted at the base class level by the VDB as
-		// they are just interfaces really. So only delete the context after you have
-		// finished using the VDB.
-		world->context->removeReference();
+		if (world->context) {
+			// Contexts are not reference counted at the base class level by the VDB as
+			// they are just interfaces really. So only delete the context after you have
+			// finished using the VDB.
+			world->context->removeReference();
+			world->context = nullptr;
+		}
 		world->bodyList.clear();
 		delete world;
 	}
+	TRY_END_NORET
 }
 void SetPhysicsWorldGravity(sPhysicsWorld* world, spVec3 gravity)
 {
+	TRY_BEGIN
 	world->physicsWorld->setGravity(hkVector4(gravity->x, gravity->y, gravity->z));
+	TRY_END_NORET
 }
 
-
 void StepPhysicsWorld(sPhysicsWorld* world, float timestep) {
+
 	if (initStruct.mulithread) {
 
 		// <PHYSICS-ONLY>:
@@ -124,9 +145,11 @@ void StepPhysicsWorld(sPhysicsWorld* world, float timestep) {
 			world->physicsWorld->stepMultithreaded(jobQueue, threadPool, timestep);
 		}
 
-		// Step the visual debugger. We first synchronize the timer data
-		world->context->syncTimers(threadPool);
-		world->vdb->step();
+		if (world->vdb) {
+			// Step the visual debugger. We first synchronize the timer data
+			world->context->syncTimers(threadPool);
+			world->vdb->step();
+		}
 
 		// Clear accumulated timer data in this thread and all slave threads
 		hkMonitorStream::getInstance().reset();
@@ -134,8 +157,10 @@ void StepPhysicsWorld(sPhysicsWorld* world, float timestep) {
 	}
 	else {
 		world->physicsWorld->stepDeltaTime(timestep);
-		// Step the debugger
-		world->vdb->step();
+		if (world->vdb) {
+			// Step the debugger
+			world->vdb->step();
+		}
 		// Reset internal profiling info for next frame
 		hkMonitorStream::getInstance().reset();
 	}
@@ -149,20 +174,21 @@ int ReadPhysicsWorldBodys(sPhysicsWorld* world, float *buffer, int count)
 	auto* ptr = world->bodyCurrent;
 	while (ptr && currentCount < count) {
 
-		auto &pos = ptr->rigidBody->getPosition();
-		auto &rot = ptr->rigidBody->getRotation();
+		if (ptr->active) {
+			auto& pos = ptr->rigidBody->getPosition();
+			auto& rot = ptr->rigidBody->getRotation();
 
-		currentPos = currentCount * 8;
-		buffer[currentPos] = pos.getComponent(0);
-		buffer[currentPos + 1] = pos.getComponent(1);
-		buffer[currentPos + 2] = pos.getComponent(2);
+			currentPos = currentCount * 8;
+			buffer[currentPos] = pos.getComponent(0);
+			buffer[currentPos + 1] = pos.getComponent(1);
+			buffer[currentPos + 2] = pos.getComponent(2);
+			buffer[currentPos + 3] = static_cast<float>(ptr->id);
 
-		buffer[currentPos + 3] = rot.getComponent<0>();
-		buffer[currentPos + 4] = rot.getComponent<1>();
-		buffer[currentPos + 5] = rot.getComponent<2>();
-		buffer[currentPos + 6] = rot.getComponent<3>();
-
-		buffer[currentPos + 7] = ptr->id;
+			buffer[currentPos + 4] = rot.getComponent<0>();
+			buffer[currentPos + 5] = rot.getComponent<1>();
+			buffer[currentPos + 6] = rot.getComponent<2>();
+			buffer[currentPos + 7] = rot.getComponent<3>();
+		}
 
 		currentCount++;
 		ptr = ptr->next;
@@ -170,6 +196,14 @@ int ReadPhysicsWorldBodys(sPhysicsWorld* world, float *buffer, int count)
 		world->bodyCurrentIndex++;
 	}
 	return world->bodyList.getSize() - world->bodyCurrentIndex;
+}
+
+void TestAssert() {
+	TRY_BEGIN
+
+	HK_ASSERT2(0x76867893, false, "TestAssert");
+
+	TRY_END_NORET
 }
 
 

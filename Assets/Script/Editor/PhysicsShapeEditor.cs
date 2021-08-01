@@ -209,6 +209,12 @@ class PhysicsShapeEditor : Editor
 
         serializedObject.Update();
 
+        if (instance.ShapeMesh == null)
+        {
+            var m = instance.GetComponent<MeshFilter>();
+            if (m != null) instance.ShapeMesh = m.sharedMesh;
+        }
+
         EditorGUILayout.PropertyField(pShapeType);
         DrawShapeInspector();
         EditorGUILayout.PropertyField(pWrap);

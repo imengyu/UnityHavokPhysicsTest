@@ -1,4 +1,5 @@
 
+using PhyicsRT.Utils;
 using System;
 using UnityEngine;
 
@@ -97,7 +98,8 @@ namespace PhyicsRT
     [AddComponentMenu("PhysicsRT/Physics Body")]
     [DefaultExecutionOrder(150)]
     [DisallowMultipleComponent]
-    public class PhysicsBody : MonoBehaviour {
+    public class PhysicsBody : MonoBehaviour, LinkedListItem<PhysicsBody>
+    {
 
         const float MinimumMass = 0.001f;
     
@@ -284,6 +286,9 @@ namespace PhyicsRT
             }
         }
 
+        public PhysicsBody prev { get; set; }
+        public PhysicsBody next { get; set; }
+
         /// <summary>
         /// 重新创建物理刚体，这将导致当前物理状态丢失
         /// </summary>
@@ -336,11 +341,23 @@ namespace PhyicsRT
             currentShapeMassProperties = shape.ComputeMassProperties(m_Mass);
             return shape.GetShapeBody(nextCreateForce);
         }
+        private void ReleaseShapeBody() {
+
+            var shape = GetComponent<PhysicsShape>();
+            if(shape != null)
+                shape.ReleaseShapeBody();
+        }
         private void CreateBody() {
-            if(CurrentPhysicsWorld == null || ptr != IntPtr.Zero)
+            if(ptr != IntPtr.Zero) {
                 return;
+            }
+            if(CurrentPhysicsWorld == null) {
+                Debug.LogWarning("Not found PhysicsWorld in this scense, please add it before use PhysicsBody.");
+                return;
+            }
 
             IntPtr posVec3Ptr = PhysicsApi.API.CreateVec3(transform.position.x, transform.position.y, transform.position.z);
+            IntPtr rotVec4Ptr = PhysicsApi.API.CreateVec4(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
             IntPtr linearVelocityVec3Ptr = PhysicsApi.API.CreateVec3(m_InitialLinearVelocity.x, m_InitialLinearVelocity.y, m_InitialLinearVelocity.z);
             IntPtr angularVelocityVec3Ptr = PhysicsApi.API.CreateVec3(m_InitialAngularVelocity.x, m_InitialAngularVelocity.y, m_InitialAngularVelocity.z);
 
@@ -348,6 +365,7 @@ namespace PhyicsRT
                 CurrentPhysicsWorld.GetPtr(),
                 GetShapeBody(), 
                 posVec3Ptr, 
+                rotVec4Ptr,
                 Convert(m_MotionType),
                 (int)m_CollidableQualityType,
                 m_Friction,
@@ -366,6 +384,7 @@ namespace PhyicsRT
             PhysicsApi.API.DestroyVec3(linearVelocityVec3Ptr);
             PhysicsApi.API.DestroyVec3(angularVelocityVec3Ptr);
             PhysicsApi.API.DestroyVec3(posVec3Ptr);
+            PhysicsApi.API.DestroyVec4(rotVec4Ptr);
 
             nextCreateForce = false;
         }
@@ -378,6 +397,8 @@ namespace PhyicsRT
                 PhysicsApi.API.CommonDelete(currentShapeMassProperties);
                 currentShapeMassProperties = IntPtr.Zero;
             }
+
+            ReleaseShapeBody();
 
             CurrentPhysicsWorld.RemoveBody(this);
             PhysicsApi.API.DestroyRigdBody(CurrentPhysicsWorld.GetPtr(), ptr);

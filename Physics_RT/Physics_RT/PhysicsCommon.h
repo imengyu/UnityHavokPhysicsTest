@@ -1,5 +1,6 @@
 #pragma once
 #include "PhysicsHeader.h"
+#include <exception>
 
 typedef void(__cdecl* fnErrorCallback)(const char* msg);
 
@@ -13,6 +14,8 @@ struct sInitStruct {
 #define CHECK_PARAM_PTR_RET(param, name, ret) if(!param) { CallbackWithError("%s is nullptr!", name); return ret; }
 
 void CallbackWithError(char*msg, ...);
+void APIErrorReport(const char* msg, void* userArgGivenToInit);
+void APICatchHandler(std::exception& e);
 
 typedef struct sVec3 {
 	float x;
@@ -38,14 +41,6 @@ typedef struct sTransform {
 	float rotationW;
 }sTransform, * spTransform;
 
-typedef spVec3(__cdecl* fnCreateVec3)(float x, float y, float z);
-typedef spVec4(__cdecl* fnCreateVec4)(float x, float y, float z, float w);
-typedef void(__cdecl* fnCommonDelete)(const void* ptr);
-typedef spTransform(__cdecl* fnCreateTransform)(float px, float py, float pz, float rx, float ry, float rz, float rw, float sx, float sy, float sz);
-typedef void(__cdecl* fnDestroyVec4)(const spVec4 ptr);
-typedef void(__cdecl* fnDestroyVec3)(const spVec3 ptr);
-typedef void(__cdecl* fnDestroyTransform)(const spTransform ptr);
-
 void DestroyVec4(const spVec4 ptr);
 void DestroyVec3(const spVec3 ptr);
 void DestroyTransform(const spTransform ptr);
@@ -57,3 +52,7 @@ hkVector4 Vec4TohkVec4(const spVec4 vec4);
 hkQuaternion Vec4TohkQuaternion(const spVec4 vec4);
 hkQsTransform TransformTohkQsTransform(const spTransform transform);
 void CommonDelete(const void* ptr);
+
+#define TRY_BEGIN try {
+#define TRY_END(ret) } catch (std::exception &e) { APICatchHandler(e); return ret; }
+#define TRY_END_NORET } catch (std::exception &e) { APICatchHandler(e); }

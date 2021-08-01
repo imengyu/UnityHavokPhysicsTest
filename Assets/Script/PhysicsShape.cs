@@ -65,6 +65,7 @@ namespace PhyicsRT
         private IntPtr ptr = IntPtr.Zero;
         private IntPtr shapeRealPtr = IntPtr.Zero;
 
+        public int StaticCompoundChildId { get; private set; }
         public ShapeType ShapeType => m_ShapeType;
         public ShapeWrap Wrap => m_Wrap;
         public Mesh ShapeMesh { get => m_ShapeMesh; set => m_ShapeMesh = value; }
@@ -78,15 +79,11 @@ namespace PhyicsRT
         public Vector3 ShapeTranslation { get => m_Translation; set => m_Translation = value; }
         public float MinimumSkinnedVertexWeight { get => m_MinimumSkinnedVertexWeight; set => m_MinimumSkinnedVertexWeight = value; }
 
-
-        private void Awake() {
+        private void Start() {
             if(m_ShapeMesh == null) {
                 var m = GetComponent<MeshFilter>();
                 if(m != null) m_ShapeMesh = m.mesh;
             }
-        }
-        private void OnDestroy() {
-            DestroyShape();
         }
         private void OnValidate()
         {
@@ -152,6 +149,14 @@ namespace PhyicsRT
             return result;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        struct sPhysicsShape {
+            public IntPtr shape;
+            public UInt16 type;
+            public IntPtr staticCompoundShapeRetIds;
+            public int staticCompoundShapeRetIdsCount;
+        };
+
         private void CreateShape(bool forceRecreate) {
 
             //Create base shape
@@ -166,7 +171,7 @@ namespace PhyicsRT
                     }
                 case ShapeType.Plane:
                     {
-                        IntPtr sizePtr = PhysicsApi.API.CreateVec3(ShapeSize.x, 0, ShapeSize.z);
+                        IntPtr sizePtr = PhysicsApi.API.CreateVec3(ShapeSize.x, 0.01f, ShapeSize.z);
                         shapeRealPtr = PhysicsApi.API.CreateBoxShape(sizePtr, ShapeConvexRadius);
                         PhysicsApi.API.DestroyVec3(sizePtr);
                         break;
@@ -261,7 +266,19 @@ namespace PhyicsRT
                         List<IntPtr> childernTransforms = new List<IntPtr>();
                         IntPtr childTransforms = IntPtr.Zero;
                         IntPtr childs = GetChildernShapes(forceRecreate, true, out int childCount, ref childTransforms, ref childernTransforms);
-                        PhysicsApi.API.CreateStaticCompoundShape(childs, childTransforms, childCount);
+                        IntPtr retStruct = PhysicsApi.API.CreateStaticCompoundShape(childs, childTransforms, childCount);
+
+                        //更新ID至每个shape
+                        sPhysicsShape str = (sPhysicsShape)Marshal.PtrToStructure(retStruct, typeof(sPhysicsShape));
+                        int[] staticCompoundShapeRetIds = new int[str.staticCompoundShapeRetIdsCount];
+                        Marshal.Copy(str.staticCompoundShapeRetIds, staticCompoundShapeRetIds, 0, str.staticCompoundShapeRetIdsCount);
+                        for (int i = 0, ia = 0, c = transform.childCount; i < c; i++) {
+                            var shape = transform.GetChild(i).gameObject.GetComponent<PhysicsShape>();
+                            if (shape != null) {
+                                ia++;
+                                shape.StaticCompoundChildId = staticCompoundShapeRetIds[ia];
+                            }
+                        }
 
                         Marshal.FreeHGlobal(childs);
                         Marshal.FreeHGlobal(childTransforms);
@@ -347,6 +364,16 @@ namespace PhyicsRT
             return outArrBuf;
         }
 
+        public void ReleaseShapeBody() {
+            DestroyShape(false);
+
+            if(ShapeType == ShapeType.List || ShapeType == ShapeType.StaticCompound)
+                for (int i = 0, c = transform.childCount; i < c; i++) {
+                    var shape = transform.GetChild(i).gameObject.GetComponent<PhysicsShape>();
+                    if (shape != null)
+                        shape.ReleaseShapeBody();
+                }
+        }
         public IntPtr GetShapeBody(bool forceRecreate)
         {
             if (forceRecreate && ptr != IntPtr.Zero)

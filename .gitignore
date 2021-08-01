@@ -6,6 +6,7 @@
 Debug/
 Assets/AssetStoreTools*
 Havok/
+Logs/
 
 # Visual Studio cache directory
 .vs/

@@ -15,40 +15,61 @@
 #include <Common/Internal/GeometryProcessing/ConvexHull/hkgpConvexHull.h>
 
 sPhysicsShape* CreateBoxShape(spVec3 boxSize, float radius) {
-	sPhysicsShape* s = new sPhysicsShape();
-	s->type = ePhysicsShapeType::BoxShape;
-	s->shape = new hkpBoxShape(Vec3TohkVec4(boxSize), radius);
-	return s;
-}
-sPhysicsShape* CreateSphereShape(float radius) {
-	sPhysicsShape* s = new sPhysicsShape();
-	s->type = ePhysicsShapeType::SphereShape;
-	s->shape = new hkpSphereShape(radius);
-	return s;
-}
-sPhysicsShape* CreateCapsuleShape(spVec3 start, spVec3 end, float radius) {
-	sPhysicsShape* s = new sPhysicsShape();
-	s->type = ePhysicsShapeType::CapsuleShape;
-	s->shape = new hkpCapsuleShape(Vec3TohkVec4(start), Vec3TohkVec4(end), radius);
-	return s;
-}
-sPhysicsShape* CreateCylindeShape(spVec3 start, spVec3 end, float radius, float paddingRadius) {
-	sPhysicsShape* s = new sPhysicsShape();
-	s->type = ePhysicsShapeType::CylindeShape;
-	s->shape = new hkpCylinderShape(Vec3TohkVec4(start), Vec3TohkVec4(end), radius, paddingRadius);
-	return s;
-}
-sPhysicsShape* CreateTriangleShape(spVec3 v0, spVec3 v1, spVec3 v2) {
-	sPhysicsShape* s = new sPhysicsShape();
-	s->type = ePhysicsShapeType::TriangleShape;
-	s->shape = new hkpTriangleShape(Vec3TohkVec4(v0), Vec3TohkVec4(v1), Vec3TohkVec4(v2));
-	return s;
-}
-sPhysicsShape* CreateConvexVerticesShape(float *vertices, int numVertices, float convexRadius) {
-	CHECK_PARAM_PTR(vertices, "vertices");
+	TRY_BEGIN
 
 	sPhysicsShape* s = new sPhysicsShape();
-	s->type = ePhysicsShapeType::ConvexVerticesShape;
+	s->type = BoxShape;
+	s->shape = new hkpBoxShape(Vec3TohkVec4(boxSize), radius);
+	return s;
+
+	TRY_END(nullptr)
+}
+sPhysicsShape* CreateSphereShape(float radius) {
+	TRY_BEGIN
+
+	sPhysicsShape* s = new sPhysicsShape();
+	s->type = SphereShape;
+	s->shape = new hkpSphereShape(radius);
+	return s;
+
+	TRY_END(nullptr)
+}
+sPhysicsShape* CreateCapsuleShape(spVec3 start, spVec3 end, float radius) {
+	TRY_BEGIN
+
+	sPhysicsShape* s = new sPhysicsShape();
+	s->type = CapsuleShape;
+	s->shape = new hkpCapsuleShape(Vec3TohkVec4(start), Vec3TohkVec4(end), radius);
+	return s;
+
+	TRY_END(nullptr)
+}
+sPhysicsShape* CreateCylindeShape(spVec3 start, spVec3 end, float radius, float paddingRadius) {
+	TRY_BEGIN
+
+	sPhysicsShape* s = new sPhysicsShape();
+	s->type = CylindeShape;
+	s->shape = new hkpCylinderShape(Vec3TohkVec4(start), Vec3TohkVec4(end), radius, paddingRadius);
+	return s;
+
+	TRY_END(nullptr)
+}
+sPhysicsShape* CreateTriangleShape(spVec3 v0, spVec3 v1, spVec3 v2) {
+	TRY_BEGIN
+
+	sPhysicsShape* s = new sPhysicsShape();
+	s->type = TriangleShape;
+	s->shape = new hkpTriangleShape(Vec3TohkVec4(v0), Vec3TohkVec4(v1), Vec3TohkVec4(v2));
+	return s;
+
+	TRY_END(nullptr)
+}
+sPhysicsShape* CreateConvexVerticesShape(float *vertices, int numVertices, float convexRadius) {
+	TRY_BEGIN
+	CHECK_PARAM_PTR_RET(vertices, "vertices", nullptr);
+
+	sPhysicsShape* s = new sPhysicsShape();
+	s->type = ConvexVerticesShape;
 
 	hkpConvexVerticesShape::BuildConfig config;
 	config.m_convexRadius = convexRadius;
@@ -66,54 +87,69 @@ sPhysicsShape* CreateConvexVerticesShape(float *vertices, int numVertices, float
 
 	s->shape = new hkpConvexVerticesShape(hkStridedVertices(hkVertices), config);
 	return s;
+
+	TRY_END(nullptr)
 }
 sPhysicsShape* CreateConvexVerticesShapeByConvexHullResult(sConvexHullResult* result, float convexRadius) {
-	CHECK_PARAM_PTR(result, "result");
+	TRY_BEGIN
+	CHECK_PARAM_PTR_RET(result, "result", nullptr);
 
 	sPhysicsShape* s = new sPhysicsShape();
-	s->type = ePhysicsShapeType::ConvexVerticesShape;
+	s->type = ConvexVerticesShape;
 
 	hkpConvexVerticesShape::BuildConfig config;
 	config.m_convexRadius = convexRadius;
 
 	s->shape = new hkpConvexVerticesShape(hkStridedVertices(result->geometry.m_vertices), config);
 	return s;
+
+	TRY_END(nullptr)
 }
 
 sPhysicsShape* CreateConvexTranslateShape(sPhysicsShape* child, spVec3 translation) {
-	CHECK_PARAM_PTR(child, "child");
+	TRY_BEGIN
+	CHECK_PARAM_PTR_RET(child, "child", nullptr);
 
 	sPhysicsShape* s = new sPhysicsShape();
-	s->type = ePhysicsShapeType::ConvexTranslateShape;
+	s->type = ConvexTranslateShape;
 	s->shape = new hkpConvexTranslateShape((hkpConvexShape*)child->shape, Vec3TohkVec4(translation));
 	return s;
+
+	TRY_END(nullptr)
 }
 sPhysicsShape* CreateConvexTransformShape(sPhysicsShape* child, spTransform transform) {
-	CHECK_PARAM_PTR(child, "child");
+	TRY_BEGIN
+	CHECK_PARAM_PTR_RET(child, "child", nullptr);
 
 	sPhysicsShape* s = new sPhysicsShape();
-	s->type = ePhysicsShapeType::ConvexTransformShape;
+	s->type = ConvexTransformShape;
 	s->shape = new hkpConvexTransformShape((hkpConvexShape*)child->shape, TransformTohkQsTransform(transform));
 	return s;
+
+	TRY_END(nullptr)
 }
 sPhysicsShape* CreateListShape(sPhysicsShape** childs, int childCount) {
-	CHECK_PARAM_PTR(childs, "childs");
+	TRY_BEGIN
+	CHECK_PARAM_PTR_RET(childs, "childs", nullptr);
 
 	sPhysicsShape* s = new sPhysicsShape();
-	s->type = ePhysicsShapeType::ListShape;
+	s->type = ListShape;
 
 	hkArray<hkpShape*> shapeArray;
 	for (int i = 0; i < childCount; i++)
 		shapeArray.pushBack(childs[i]->shape);
 	s->shape = new hkpListShape(shapeArray.begin(), shapeArray.getSize());
 	return s;
+
+	TRY_END(nullptr)
 }
 sPhysicsShape* CreateStaticCompoundShape(sPhysicsShape** childs, spTransform*transforms, int childCount) {
-	CHECK_PARAM_PTR(childs, "childs");
-	CHECK_PARAM_PTR(transforms, "transforms");
+	TRY_BEGIN
+	CHECK_PARAM_PTR_RET(childs, "childs", nullptr);
+	CHECK_PARAM_PTR_RET(transforms, "transforms", nullptr);
 
 	sPhysicsShape* s = new sPhysicsShape();
-	s->type = ePhysicsShapeType::StaticCompoundShape;
+	s->type = StaticCompoundShape;
 
 	hkpStaticCompoundShape* staticCompoundShape = new hkpStaticCompoundShape();
 
@@ -127,44 +163,63 @@ sPhysicsShape* CreateStaticCompoundShape(sPhysicsShape** childs, spTransform*tra
 	s->staticCompoundShapeRetIds = ids;
 	s->staticCompoundShapeRetIdsCount = childCount;
 	return s;
+
+	TRY_END(nullptr)
 }
 
 void StaticCompoundShapeSetInstanceEnabled(sPhysicsShape* pStaticCompoundShape, int id, int enabled) {
+	TRY_BEGIN
 	CHECK_PARAM_PTR(pStaticCompoundShape, "pStaticCompoundShape");
-	if (pStaticCompoundShape->type != ePhysicsShapeType::StaticCompoundShape) {
+
+	if (pStaticCompoundShape->type != StaticCompoundShape) {
 		CallbackWithError("input shape is not StaticCompoundShape");
 		return;
 	}
 	((hkpStaticCompoundShape*)pStaticCompoundShape->shape)->setInstanceEnabled(id, enabled);
+
+	TRY_END_NORET
 }
 int StaticCompoundShapeIsInstanceEnabled(sPhysicsShape* pStaticCompoundShape, int id) {
-	CHECK_PARAM_PTR(pStaticCompoundShape, "pStaticCompoundShape");
-	if (pStaticCompoundShape->type != ePhysicsShapeType::StaticCompoundShape) {
+	TRY_BEGIN
+	CHECK_PARAM_PTR_RET(pStaticCompoundShape, "pStaticCompoundShape", 0);
+
+	if (pStaticCompoundShape->type != StaticCompoundShape) {
 		CallbackWithError("input shape is not StaticCompoundShape");
 		return 0;
 	}
 	return ((hkpStaticCompoundShape*)pStaticCompoundShape->shape)->isInstanceEnabled(id);
+
+	TRY_END(0)
 }
 void StaticCompoundShapeEnableAllInstancesAndShapeKeys(sPhysicsShape* pStaticCompoundShape) {
+	TRY_BEGIN
 	CHECK_PARAM_PTR(pStaticCompoundShape, "pStaticCompoundShape");
-	if (pStaticCompoundShape->type != ePhysicsShapeType::StaticCompoundShape) {
+
+	if (pStaticCompoundShape->type != StaticCompoundShape) {
 		CallbackWithError("input shape is not StaticCompoundShape");
 		return;
 	}
 	((hkpStaticCompoundShape*)pStaticCompoundShape->shape)->enableAllInstancesAndShapeKeys();
+
+	TRY_END_NORET
 }
 
 void DestroyShape(sPhysicsShape*s) {
+	TRY_BEGIN
 	CHECK_PARAM_PTR(s, "s");
+
 	s->shape->removeReference();
 	if (s->staticCompoundShapeRetIds) {
 		delete[] s->staticCompoundShapeRetIds;
 		s->staticCompoundShapeRetIds = nullptr;
 	}
 	delete s;
+
+	TRY_END_NORET
 }
 
-void GetConvexHullResultTriangles(sConvexHullResult* result, float* trianglesBuffer, int count) {
+void GetConvexHullResultTriangles(sConvexHullResult* result, int* trianglesBuffer, int count) {
+	TRY_BEGIN
 	CHECK_PARAM_PTR(result, "result");
 	CHECK_PARAM_PTR(trianglesBuffer, "trianglesBuffer");
 
@@ -175,8 +230,11 @@ void GetConvexHullResultTriangles(sConvexHullResult* result, float* trianglesBuf
 		trianglesBuffer[i * 3 + 1] = it->m_b;
 		trianglesBuffer[i * 3 + 2] = it->m_c;
 	}
+
+	TRY_END_NORET
 }
 void GetConvexHullResultVertices(sConvexHullResult* result, float* pointsBuffer, int numPoints) {
+	TRY_BEGIN
 	CHECK_PARAM_PTR(result, "result");
 	CHECK_PARAM_PTR(pointsBuffer, "pointsBuffer");
 
@@ -187,13 +245,16 @@ void GetConvexHullResultVertices(sConvexHullResult* result, float* pointsBuffer,
 		pointsBuffer[i * 3 + 1] = it->getComponent<1>();
 		pointsBuffer[i * 3 + 2] = it->getComponent<2>();
 	}
+
+	TRY_END_NORET
 }
 sConvexHullResult* Build3DPointsConvexHull(float* points, int numPoints) {
 
-	CHECK_PARAM_PTR(points, "points");
+	TRY_BEGIN
+	CHECK_PARAM_PTR_RET(points, "points", nullptr);
 	if (numPoints >= 8192) {
 		CallbackWithError("Build3DPointsConvexHull: Too much points: %d > 8192", numPoints);
-		return;
+		return nullptr;
 	}
 
 	// generate a convex geometry
@@ -211,7 +272,7 @@ sConvexHullResult* Build3DPointsConvexHull(float* points, int numPoints) {
 	convexHull->build(hkPoints.begin(), numPoints);
 	convexHull->buildIndices();
 
-	auto aabb = convexHull->getBoundingBox(hkgpConvexHull::Inputs::SOURCE_VERTICES);
+	auto aabb = convexHull->getBoundingBox(hkgpConvexHull::SOURCE_VERTICES);
 	
 	sConvexHullResult* result = new sConvexHullResult();
 	result->aabb[0] = aabb.m_min.getComponent<0>();
@@ -223,18 +284,21 @@ sConvexHullResult* Build3DPointsConvexHull(float* points, int numPoints) {
 	result->aabb[6] = aabb.m_max.getComponent<2>();
 	result->aabb[7] = aabb.m_max.getComponent<3>();
 
-	convexHull->generateGeometry(hkgpConvexHull::Inputs::SOURCE_VERTICES, result->geometry);
+	convexHull->generateGeometry(hkgpConvexHull::SOURCE_VERTICES, result->geometry);
 	
 	result->trianglesCount = result->geometry.m_triangles.getSize();
 	result->verticesCount = result->geometry.m_vertices.getSize();
 	return result;
+
+	TRY_END(nullptr)
 }
 sConvexHullResult* Build3DFromPlaneConvexHull(float* panels, int numPanels) {
 
-	CHECK_PARAM_PTR(panels, "panels");
+	TRY_BEGIN
+	CHECK_PARAM_PTR_RET(panels, "panels", nullptr);
 	if (numPanels >= 8192) {
 		CallbackWithError("Build3DPointsConvexHull: Too much panels: %d > 8192", numPanels);
-		return;
+		return nullptr;
 	}
 
 	// generate a convex geometry
@@ -252,7 +316,7 @@ sConvexHullResult* Build3DFromPlaneConvexHull(float* panels, int numPanels) {
 	convexHull->buildFromPlanes(hkPanels.begin(), numPanels);
 	convexHull->buildIndices();
 
-	auto aabb = convexHull->getBoundingBox(hkgpConvexHull::Inputs::SOURCE_VERTICES);
+	auto aabb = convexHull->getBoundingBox(hkgpConvexHull::SOURCE_VERTICES);
 
 	sConvexHullResult* result = new sConvexHullResult();
 	result->aabb[0] = aabb.m_min.getComponent<0>();
@@ -264,9 +328,11 @@ sConvexHullResult* Build3DFromPlaneConvexHull(float* panels, int numPanels) {
 	result->aabb[6] = aabb.m_max.getComponent<2>();
 	result->aabb[7] = aabb.m_max.getComponent<3>();
 
-	convexHull->generateGeometry(hkgpConvexHull::Inputs::SOURCE_VERTICES, result->geometry);
+	convexHull->generateGeometry(hkgpConvexHull::SOURCE_VERTICES, result->geometry);
 
 	result->trianglesCount = result->geometry.m_triangles.getSize();
 	result->verticesCount = result->geometry.m_vertices.getSize();
 	return result;
+
+	TRY_END(nullptr)
 }

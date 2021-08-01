@@ -4,12 +4,17 @@ template <typename T>
 class SimpleLinkedList
 {
 public:
+	SimpleLinkedList() {
+		begin = nullptr;
+		end = nullptr;
+		m_size = 0;
+	}
 	~SimpleLinkedList() {
 		clear();
 	}
-	
-	T* begin = nullptr;
-	T* end = nullptr;
+
+	T* begin;
+	T* end;
 
 	void add(T* n) {
 		if (!begin || !end) {
@@ -25,20 +30,13 @@ public:
 		}
 	}
 	void remove(T* n) {
-		if (n->prev) 
+		if (n->prev)
 			n->prev->next = n->next;
 		if (n->next)
 			n->next->prev = n->prev;
 		m_size--;
 	}
 	void clear() {
-		T* ptr = begin;
-		while (ptr) {
-			ptr->prev = nullptr;
-			T* oldPtr = ptr->next;
-			ptr->next = nullptr;
-			ptr = oldPtr;
-		}
 		begin = nullptr;
 		end = nullptr;
 		m_size = 0;
@@ -49,6 +47,6 @@ public:
 	}
 
 private:
-	int m_size = 0;
+	int m_size;
 };
 

@@ -49,6 +49,9 @@
     <ClInclude Include="SimpleLinkedList.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="MyErrorHandler.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -70,6 +73,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="PhysicsShape.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MyErrorHandler.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

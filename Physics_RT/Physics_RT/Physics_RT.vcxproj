@@ -158,6 +158,7 @@
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MyErrorHandler.h" />
     <ClInclude Include="SimpleLinkedList.hpp" />
     <ClInclude Include="PhysicsBody.h" />
     <ClInclude Include="PhysicsCommon.h" />
@@ -184,6 +185,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="MyErrorHandler.cpp" />
     <ClCompile Include="PhysicsBody.cpp" />
     <ClCompile Include="PhysicsFunctions.cpp" />
     <ClCompile Include="PhysicsMain.cpp" />

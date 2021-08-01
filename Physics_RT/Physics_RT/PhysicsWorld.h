@@ -13,15 +13,11 @@ struct sPhysicsWorld {
 	int bodyCurrentIndex;
 };
 
-typedef sPhysicsWorld* (__cdecl* fnCreatePhysicsWorld)(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance);
-typedef void(__cdecl* fnDestroyPhysicsWorld)(sPhysicsWorld* world);
-typedef void(__cdecl* fnStepPhysicsWorld)(sPhysicsWorld* world, float timestep);
-typedef void(__cdecl* fnSetPhysicsWorldGravity)(sPhysicsWorld* world, spVec3 gravity);
-typedef int(__cdecl* fnReadPhysicsWorldBodys)(sPhysicsWorld* world, float* buffer, int count);
-
-
-sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance);
+sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance,
+	bool bContinuous, bool bVisualDebugger);
 void DestroyPhysicsWorld(sPhysicsWorld* world);
 void StepPhysicsWorld(sPhysicsWorld* world, float timestep);
 void SetPhysicsWorldGravity(sPhysicsWorld* world, spVec3 gravity);
 int ReadPhysicsWorldBodys(sPhysicsWorld* world, float* buffer, int count);
+
+void TestAssert();

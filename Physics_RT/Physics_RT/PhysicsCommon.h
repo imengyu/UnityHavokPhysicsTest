@@ -10,8 +10,7 @@ struct sInitStruct {
 	int smallPoolSize;
 };
 
-#define CHECK_PARAM_PTR(param, name) if(!param) { CallbackWithError("%s is nullptr!", name); return; }
-#define CHECK_PARAM_PTR_RET(param, name, ret) if(!param) { CallbackWithError("%s is nullptr!", name); return ret; }
+#define CHECK_PARAM_PTR(param) if(!param) { throw std::exception(#param ## " is nullptr!"); }
 
 void CallbackWithError(char*msg, ...);
 void APIErrorReport(const char* msg, void* userArgGivenToInit);
@@ -56,3 +55,5 @@ void CommonDelete(const void* ptr);
 #define TRY_BEGIN try {
 #define TRY_END(ret) } catch (std::exception &e) { APICatchHandler(e); return ret; }
 #define TRY_END_NORET } catch (std::exception &e) { APICatchHandler(e); }
+
+#define M_PI       3.1415926535f   // pi

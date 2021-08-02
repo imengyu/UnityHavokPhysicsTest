@@ -25,7 +25,7 @@ namespace PhyicsRT
     }
 
     [AddComponentMenu("PhysicsRT/Physics Shape")]
-    [DefaultExecutionOrder(110)]
+    [DefaultExecutionOrder(210)]
     [DisallowMultipleComponent]
     public class PhysicsShape : MonoBehaviour
     {
@@ -65,6 +65,13 @@ namespace PhyicsRT
         private IntPtr ptr = IntPtr.Zero;
         private IntPtr shapeRealPtr = IntPtr.Zero;
 
+        [SerializeField]
+        PhysicsLayerTags m_BelongsToCategories = PhysicsLayerTags.Everything;
+        [SerializeField]
+        PhysicsLayerTags m_CollidesWithCategories = PhysicsLayerTags.Everything;
+        [SerializeField]
+        CustomPhysicsMaterialTags m_CustomMaterialTags = new CustomPhysicsMaterialTags();
+
         public int StaticCompoundChildId { get; private set; }
         public ShapeType ShapeType => m_ShapeType;
         public ShapeWrap Wrap => m_Wrap;
@@ -78,6 +85,11 @@ namespace PhyicsRT
         public Vector3 ShapeRotation { get => m_Rotation; set => m_Rotation = value; }
         public Vector3 ShapeTranslation { get => m_Translation; set => m_Translation = value; }
         public float MinimumSkinnedVertexWeight { get => m_MinimumSkinnedVertexWeight; set => m_MinimumSkinnedVertexWeight = value; }
+        public CustomPhysicsMaterialTags CustomTags
+        {
+            get => m_CustomMaterialTags;
+            set => m_CustomMaterialTags = value;
+        }
 
         private void Start() {
             if(m_ShapeMesh == null) {
@@ -96,6 +108,8 @@ namespace PhyicsRT
         public IntPtr GetPtr() { return ptr; }
         public IntPtr ComputeMassProperties(float mass)
         {
+            Debug.Assert(ptr != IntPtr.Zero, "CreateConvexVerticesShapeByConvexHullResult failed!");
+
             IntPtr result = IntPtr.Zero;
             switch (ShapeType)
             {
@@ -164,14 +178,14 @@ namespace PhyicsRT
             {
                 case ShapeType.Box:
                     {
-                        IntPtr sizePtr = PhysicsApi.API.CreateVec3(ShapeSize.x, ShapeSize.y, ShapeSize.z);
+                        IntPtr sizePtr = PhysicsApi.API.CreateVec3(ShapeSize.x / 2, ShapeSize.y / 2, ShapeSize.z / 2);
                         shapeRealPtr = PhysicsApi.API.CreateBoxShape(sizePtr, ShapeConvexRadius);
                         PhysicsApi.API.DestroyVec3(sizePtr);
                         break;
                     }
                 case ShapeType.Plane:
                     {
-                        IntPtr sizePtr = PhysicsApi.API.CreateVec3(ShapeSize.x, 0.01f, ShapeSize.z);
+                        IntPtr sizePtr = PhysicsApi.API.CreateVec3(ShapeSize.x / 2, 0.01f, ShapeSize.z / 2);
                         shapeRealPtr = PhysicsApi.API.CreateBoxShape(sizePtr, ShapeConvexRadius);
                         PhysicsApi.API.DestroyVec3(sizePtr);
                         break;
@@ -216,12 +230,14 @@ namespace PhyicsRT
                             verticesArr[i * 3 + 1] = mesh.vertices[i].y;
                             verticesArr[i * 3 + 2] = mesh.vertices[i].z;
                         }
-                        int bufferSize = Marshal.SizeOf(verticesArr);
+                        int bufferSize = Marshal.SizeOf<float>() * verticesArr.Length;
                         IntPtr verticesBuffer = Marshal.AllocHGlobal(bufferSize);
                         Marshal.Copy(verticesArr, 0, verticesBuffer, verticesArr.Length);
 
                         IntPtr convexHullResult = PhysicsApi.API.Build3DPointsConvexHull(verticesBuffer, mesh.vertices.Length);
                         shapeRealPtr = PhysicsApi.API.CreateConvexVerticesShapeByConvexHullResult(convexHullResult, ShapeConvexRadius);
+
+                        Debug.Log("shapeRealPtr: " + shapeRealPtr);
 
                         Marshal.FreeHGlobal(verticesBuffer);
                         PhysicsApi.API.CommonDelete(convexHullResult);
@@ -257,7 +273,7 @@ namespace PhyicsRT
                         List<IntPtr> childernTransforms = null;
                         IntPtr childTransforms = IntPtr.Zero;
                         IntPtr childs = GetChildernShapes(forceRecreate, false, out int childCount, ref childTransforms, ref childernTransforms);
-                        PhysicsApi.API.CreateListShape(childs, childCount);
+                        shapeRealPtr = PhysicsApi.API.CreateListShape(childs, childCount);
                         Marshal.FreeHGlobal(childs);
                         break;
                     }
@@ -267,7 +283,7 @@ namespace PhyicsRT
                         IntPtr childTransforms = IntPtr.Zero;
                         IntPtr childs = GetChildernShapes(forceRecreate, true, out int childCount, ref childTransforms, ref childernTransforms);
                         IntPtr retStruct = PhysicsApi.API.CreateStaticCompoundShape(childs, childTransforms, childCount);
-
+                        shapeRealPtr = retStruct;
                         //更新ID至每个shape
                         sPhysicsShape str = (sPhysicsShape)Marshal.PtrToStructure(retStruct, typeof(sPhysicsShape));
                         int[] staticCompoundShapeRetIds = new int[str.staticCompoundShapeRetIdsCount];
@@ -303,14 +319,14 @@ namespace PhyicsRT
                             quaternion.x, quaternion.y, quaternion.z, quaternion.w,
                             ShapeScale.x, ShapeScale.y, ShapeScale.z
                         );
-                        PhysicsApi.API.CreateConvexTransformShape(shapeRealPtr, posPtr);
+                        ptr = PhysicsApi.API.CreateConvexTransformShape(shapeRealPtr, posPtr);
                         PhysicsApi.API.DestroyTransform(posPtr);
                         break;
                     }
                 case ShapeWrap.TranslateShape:
                     {
                         IntPtr posPtr = PhysicsApi.API.CreateVec3(ShapeTranslation.x, ShapeTranslation.y, ShapeTranslation.z);
-                        PhysicsApi.API.CreateConvexTranslateShape(shapeRealPtr, posPtr);
+                        ptr = PhysicsApi.API.CreateConvexTranslateShape(shapeRealPtr, posPtr);
                         PhysicsApi.API.DestroyVec3(posPtr);
                         break;
                     }
@@ -393,12 +409,12 @@ namespace PhyicsRT
             {
                 case ShapeType.Box:
                 case ShapeType.Plane:
-                    ShapeSize = bounds.size;
+                    ShapeSize = Vector3.Scale(bounds.size, transform.localScale);
                     ShapeTranslation = bounds.center;
                     break;
                 case ShapeType.Capsule:
                 case ShapeType.Cylinder:
-                    ShapeRadius = new Vector2(bounds.size.x, bounds.size.z).magnitude / 2;
+                    ShapeRadius = bounds.size.x / 2 * transform.localScale.x;
                     ShapeHeight = bounds.size.y;
                     break;
                 case ShapeType.Sphere:

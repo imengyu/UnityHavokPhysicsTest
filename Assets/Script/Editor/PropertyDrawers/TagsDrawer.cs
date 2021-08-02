@@ -238,8 +238,8 @@ class CustomMaterialTagsDrawer : TagsDrawer<CustomPhysicsMaterialTagNames>
     protected override int MaxNumCategories => 8;
 }
 
-[CustomPropertyDrawer(typeof(PhysicsCategoryTags))]
-class PhysicsCategoryTagsDrawer : TagsDrawer<PhysicsCategoryNames>
+[CustomPropertyDrawer(typeof(PhysicsLayerTags))]
+class PhysicsLayerTagsDrawer : TagsDrawer<PhysicsLayerNames>
 {
     protected override string DefaultCategoryName => "Physics Category";
     protected override int MaxNumCategories => 32;

@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace PhyicsRT
 {
-    public enum MotionMotionType {
+    public enum MotionType {
         /// <summary>
         /// A fully-simulated, movable rigid body. At construction time the engine checks
         /// the input inertia and selects MOTION_SPHERE_INERTIA or MOTION_BOX_INERTIA as
@@ -55,7 +55,8 @@ namespace PhyicsRT
         Character,
     }
     public enum CollidableQualityType
-    {
+    {    
+        HK_COLLIDABLE_QUALITY_INVALID = -1,
         /// Use this for fixed bodies.
         HK_COLLIDABLE_QUALITY_FIXED = 0,
 
@@ -96,30 +97,30 @@ namespace PhyicsRT
     };
 
     [AddComponentMenu("PhysicsRT/Physics Body")]
-    [DefaultExecutionOrder(150)]
+    [DefaultExecutionOrder(250)]
     [DisallowMultipleComponent]
     public class PhysicsBody : MonoBehaviour, LinkedListItem<PhysicsBody>
     {
-
         const float MinimumMass = 0.001f;
     
-        private int Convert(MotionMotionType m) {
+        private int Convert(MotionType m) {
             switch(m) {
-                case MotionMotionType.Dynamic: return 1;
-                case MotionMotionType.SphereInertia: return 2;
-                case MotionMotionType.BoxInertia: return 3;
-                case MotionMotionType.Keyframed: return 4;
-                case MotionMotionType.Fixed: return 5;
-                case MotionMotionType.ThinBoxInertia: return 6;
-                case MotionMotionType.Character: return 7;
+                case MotionType.Dynamic: return 1;
+                case MotionType.SphereInertia: return 2;
+                case MotionType.BoxInertia: return 3;
+                case MotionType.Keyframed: return 4;
+                case MotionType.Fixed: return 5;
+                case MotionType.ThinBoxInertia: return 6;
+                case MotionType.Character: return 7;
             }
             return 0;
         }
 
         [SerializeField]
-        MotionMotionType m_MotionType = MotionMotionType.Fixed;
+        MotionType m_MotionType = MotionType.Fixed;
         [SerializeField]
-        CollidableQualityType m_CollidableQualityType = CollidableQualityType.HK_COLLIDABLE_QUALITY_FIXED;
+        [Tooltip("The quality type, used to specify when to use continuous physics.")]
+        CollidableQualityType m_CollidableQualityType = CollidableQualityType.HK_COLLIDABLE_QUALITY_INVALID;
         [SerializeField]
         float m_Mass = 1.0f;
         [SerializeField]
@@ -148,13 +149,28 @@ namespace PhyicsRT
         [Tooltip("这表明物体有多“弹性”——换句话说，物体与物体碰撞后有多少能量。值为1表示对象在碰撞后恢复其所有能量，值为0表示对象将完全停止移动。默认值为0.4。恢复的实现只是一个粗略的近似值，因此您可能希望在游戏中使用不同的值进行实验，以获得所需的效果。")]
         [SerializeField]
         private float m_Restitution = 0.4f;
+        [SerializeField]
+        private int m_Layer = -1;
 
         private IntPtr ptr = IntPtr.Zero;
 
         /// <summary>
+        /// 获取或设置刚体碰撞层
+        /// </summary>
+        public int Layer {
+            get => m_Layer; 
+            set {
+                if(m_Layer != value) {
+                    m_Layer = value; 
+                    if(ptr != IntPtr.Zero)
+                        PhysicsApi.API.SetRigdBodyLayer(ptr, m_Layer);
+                }
+            }
+        }  
+        /// <summary>
         /// 获取或设置刚体的类型
         /// </summary>
-        public MotionMotionType MotionType {
+        public MotionType MotionType {
             get => m_MotionType; 
             set {
                 if(m_MotionType != value) {
@@ -338,8 +354,9 @@ namespace PhyicsRT
                 return IntPtr.Zero;
             }
 
+            var s = shape.GetShapeBody(nextCreateForce);
             currentShapeMassProperties = shape.ComputeMassProperties(m_Mass);
-            return shape.GetShapeBody(nextCreateForce);
+            return s;
         }
         private void ReleaseShapeBody() {
 
@@ -372,6 +389,7 @@ namespace PhyicsRT
                 m_Restitution,
                 m_Mass, 
                 gameObject.activeSelf ? 1 : 0, 
+                m_Layer,
                 m_GravityFactor,
                 m_LinearDamping,
                 m_AngularDamping,
@@ -401,9 +419,80 @@ namespace PhyicsRT
             ReleaseShapeBody();
 
             CurrentPhysicsWorld.RemoveBody(this);
-            PhysicsApi.API.DestroyRigdBody(CurrentPhysicsWorld.GetPtr(), ptr);
+            PhysicsApi.API.DestroyRigdBody(ptr);
             ptr = IntPtr.Zero;
         }
+    
+        private MotionType oldMotionType = MotionType.Fixed;
+        private float oldMass = 0;
+        private float oldLinearDamping =  0;
+        private float oldAngularDamping = 0;
+        private float oldGravityFactor =  0;
+        private Vector3 oldCenterOfMass = Vector3.zero;
+        private float oldFriction =  0;
+        private float oldRestitution = 0;
+        private int oldLayer = 0;
 
+        public void BackUpRuntimeCanModifieProperties() {
+            oldMotionType = m_MotionType;
+            oldMass = m_Mass;
+            oldLinearDamping = m_LinearDamping;
+            oldAngularDamping = m_AngularDamping;
+            oldGravityFactor = m_GravityFactor;
+            oldCenterOfMass = m_CenterOfMass;
+            oldFriction = m_Friction;
+            oldRestitution = m_Restitution;
+            oldLayer = m_Layer;
+        }
+        public void ApplyModifiedProperties() {
+            if(oldMotionType != m_MotionType) {
+                var newVal = m_MotionType; m_MotionType = oldMotionType;
+                MotionType = newVal;
+            }
+            if(oldMass != m_Mass) {
+                var newVal = m_Mass; m_Mass = oldMass;
+                Mass = newVal;
+            }
+            if(oldLinearDamping != m_LinearDamping) {
+                var newVal = m_LinearDamping; m_LinearDamping = oldLinearDamping;
+                LinearDamping = newVal;
+            }
+            if(oldAngularDamping != m_AngularDamping) {
+                var newVal = m_AngularDamping; m_AngularDamping = oldAngularDamping;
+                AngularDamping = newVal;
+            }
+            if(oldGravityFactor != m_GravityFactor) {
+                var newVal = m_GravityFactor; m_GravityFactor = oldGravityFactor;
+                GravityFactor = newVal;
+            }
+            if(oldCenterOfMass != m_CenterOfMass) {
+                var newVal = m_CenterOfMass; m_CenterOfMass = oldCenterOfMass;
+                CenterOfMass = newVal;
+            }
+            if(oldFriction != m_Friction) {
+                var newVal = m_Friction; m_Friction = oldFriction;
+                Friction = newVal;
+            }
+            if(oldRestitution != m_Restitution) {
+                var newVal = m_Restitution; m_Restitution = oldRestitution;
+                Restitution = newVal;
+            }
+            if(oldLayer != m_Layer) {
+                var newVal = m_Layer; m_Layer = oldLayer;
+                Layer = newVal;
+            }
+       
+        }
+        public void UpdateTransformToPhysicsEngine() {
+             if(ptr != IntPtr.Zero){         
+                IntPtr posVec3Ptr = PhysicsApi.API.CreateVec3(transform.position.x, transform.position.y, transform.position.z);
+                IntPtr rotVec4Ptr = PhysicsApi.API.CreateVec4(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
+
+                PhysicsApi.API.SetRigdBodyPositionAndRotation(ptr, posVec3Ptr, rotVec4Ptr);
+                
+                PhysicsApi.API.DestroyVec3(posVec3Ptr);
+                PhysicsApi.API.DestroyVec4(rotVec4Ptr);
+            }
+        }
     }
 }

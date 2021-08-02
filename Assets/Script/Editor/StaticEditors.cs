@@ -14,10 +14,10 @@ class StaticEditors : ScriptableObject
     {
         Selection.activeObject = AssetDatabase.LoadAssetAtPath<CustomPhysicsMaterialTagNames>("Assets/Resources/CustomMaterialTagNames.asset");
     }
-    [MenuItem("PhysicsRT/Edit Physics category names")]
-    public static void EditPhysicsCategoryNames()
+    [MenuItem("PhysicsRT/Edit Physics layer names")]
+    public static void EditPhysicsLayerNames()
     {
-        Selection.activeObject = AssetDatabase.LoadAssetAtPath<PhysicsCategoryNames>("Assets/Resources/PhysicsCategoryNames.asset");
+        Selection.activeObject = AssetDatabase.LoadAssetAtPath<PhysicsLayerNames>("Assets/Resources/PhysicsLayerNames.asset");
     }
     
 }

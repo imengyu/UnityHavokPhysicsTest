@@ -30,6 +30,7 @@ class PhysicsShapeEditor : Editor
         pShapeConvexRadius = serializedObject.FindProperty("m_ShapeConvexRadius");
         pShapeSideCount = serializedObject.FindProperty("m_ShapeSideCount");
         pMinimumSkinnedVertexWeight = serializedObject.FindProperty("m_MinimumSkinnedVertexWeight");
+        pCustomMaterialTags = serializedObject.FindProperty("m_CustomMaterialTags");
     }
     private void OnDisable() {
         EditorPrefs.SetBool("PhysicsShapeEditor_bDrawMaterialInspector", bDrawMaterialInspector);
@@ -52,6 +53,8 @@ class PhysicsShapeEditor : Editor
     private SerializedProperty pShapeConvexRadius;
     private SerializedProperty pShapeSideCount;
     private SerializedProperty pMinimumSkinnedVertexWeight;
+    private SerializedProperty pCustomMaterialTags;
+    private SerializedProperty pLayer;
 
     private static class Styles
     {
@@ -321,6 +324,6 @@ class PhysicsShapeEditor : Editor
         }
     }
     private void DrawMaterialInspector() {
-        
+        EditorGUILayout.PropertyField(pCustomMaterialTags);
     }
 }

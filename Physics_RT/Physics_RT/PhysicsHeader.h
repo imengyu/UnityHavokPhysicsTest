@@ -18,7 +18,8 @@
 #include <Physics2012/Collide/Dispatch/hkpAgentRegisterUtil.h>					
 
 #include <Physics2012/Collide/Query/CastUtil/hkpWorldRayCastInput.h>			
-#include <Physics2012/Collide/Query/CastUtil/hkpWorldRayCastOutput.h>			
+#include <Physics2012/Collide/Query/CastUtil/hkpWorldRayCastOutput.h>	
+#include <Physics2012/Collide/Filter/Group/hkpGroupFilter.h>
 
 #include <Physics2012/Dynamics/World/hkpWorld.h>								
 #include <Physics2012/Dynamics/Entity/hkpRigidBody.h>							

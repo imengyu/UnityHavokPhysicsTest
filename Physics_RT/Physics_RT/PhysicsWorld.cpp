@@ -1,19 +1,33 @@
 #include "PhysicsHeader.h"
 #include "PhysicsFunctions.h"
+#include "Utils.h"
+#include <list>
 
 extern hkJobQueue* jobQueue;
 extern hkJobThreadPool* threadPool;
 extern sInitStruct initStruct;
 
-sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance,
-	bool bContinuous, bool bVisualDebugger)
+std::list<sPhysicsWorld*> lateDeleteWord;
+
+void lateDeleteWordInfo() {
+	for (auto it = lateDeleteWord.begin(); it != lateDeleteWord.end(); it++)
+		delete* it;
+	lateDeleteWord.clear();
+}
+
+sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance, 
+	bool bContinuous, bool bVisualDebugger, unsigned int layerMask, unsigned int *layerToMask)
 {
 	TRY_BEGIN
+
 #if defined(HK_COMPILER_HAS_INTRINSICS_IA32) && HK_CONFIG_SIMD == HK_CONFIG_SIMD_ENABLED
 	// Flush all denormal/subnormal numbers (2^-1074 to 2^-1022) to zero.
 	// Typically operations on denormals are very slow, up to 100 times slower than normal numbers.
 	_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
 #endif
+
+	CHECK_PARAM_PTR(gravity);
+	CHECK_PARAM_PTR(layerToMask);
 
 	hkpWorld* physicsWorld = nullptr;
 	{
@@ -91,6 +105,19 @@ sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, floa
 		def->context = context;
 	}
 
+	hkpGroupFilter* filter = new hkpGroupFilter();
+
+	//Set layer masks
+	for (int i = 0; i < 32; i++) {
+		filter->disableCollisionsUsingBitfield(0xfffffffe, 0xfffffffe);
+		if ((layerMask >> i) & 0x01) 
+			filter->enableCollisionsUsingBitfield(1 << i, layerToMask[i]);
+	}
+
+	physicsWorld->setCollisionFilter(filter, true);
+	filter->removeReference();
+
+	def->filter = filter;
 	def->physicsWorld = physicsWorld;
 	return def;
 
@@ -98,17 +125,15 @@ sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, floa
 }
 void DestroyPhysicsWorld(sPhysicsWorld* world) {
 	TRY_BEGIN
-	if (world) {
-		//
-		// Clean up physics and graphics
-		//
+		CHECK_PARAM_PTR(world);
 
-		// <PHYSICS-ONLY>: cleanup physics
-		{
+		if (world->physicsWorld) {
 			if (initStruct.mulithread)
 				world->physicsWorld->markForWrite();
 			world->physicsWorld->removeReference();
+			world->physicsWorld = nullptr;
 		}
+		
 		if (world->vdb) {
 			world->vdb->removeReference();
 			world->vdb = nullptr;
@@ -122,19 +147,36 @@ void DestroyPhysicsWorld(sPhysicsWorld* world) {
 			world->context = nullptr;
 		}
 		world->bodyList.clear();
-		delete world;
-	}
+		lateDeleteWord.push_back(world);
+	
 	TRY_END_NORET
 }
 void SetPhysicsWorldGravity(sPhysicsWorld* world, spVec3 gravity)
 {
 	TRY_BEGIN
-	world->physicsWorld->setGravity(hkVector4(gravity->x, gravity->y, gravity->z));
+		CHECK_PARAM_PTR(world);
+		world->physicsWorld->setGravity(hkVector4(gravity->x, gravity->y, gravity->z));
+	TRY_END_NORET
+}
+void SetPhysicsWorldCollisionLayerMasks(sPhysicsWorld* world, unsigned int layerId, unsigned int toMask, int enable, int forceUpdate) {
+	TRY_BEGIN
+		CHECK_PARAM_PTR(world);
+		
+	if (enable)
+		world->filter->enableCollisionsUsingBitfield(1 << layerId, toMask);
+	else
+		world->filter->disableCollisionsUsingBitfield(1 << layerId, toMask);
+
+	if (forceUpdate)
+		world->physicsWorld->updateCollisionFilterOnWorld(HK_UPDATE_FILTER_ON_WORLD_FULL_CHECK, HK_UPDATE_COLLECTION_FILTER_PROCESS_SHAPE_COLLECTIONS);
+
 	TRY_END_NORET
 }
 
 void StepPhysicsWorld(sPhysicsWorld* world, float timestep) {
 
+	TRY_BEGIN
+	CHECK_PARAM_PTR(world);
 	if (initStruct.mulithread) {
 
 		// <PHYSICS-ONLY>:
@@ -167,9 +209,14 @@ void StepPhysicsWorld(sPhysicsWorld* world, float timestep) {
 
 	world->bodyCurrent = world->bodyList.begin;
 	world->bodyCurrentIndex = 0;
+
+	TRY_END_NORET
 }
 int ReadPhysicsWorldBodys(sPhysicsWorld* world, float *buffer, int count)
 {
+	TRY_BEGIN
+	CHECK_PARAM_PTR(world);
+
 	int currentCount = 0, currentPos = 0;
 	auto* ptr = world->bodyCurrent;
 	while (ptr && currentCount < count) {
@@ -182,12 +229,13 @@ int ReadPhysicsWorldBodys(sPhysicsWorld* world, float *buffer, int count)
 			buffer[currentPos] = pos.getComponent(0);
 			buffer[currentPos + 1] = pos.getComponent(1);
 			buffer[currentPos + 2] = pos.getComponent(2);
-			buffer[currentPos + 3] = static_cast<float>(ptr->id);
 
-			buffer[currentPos + 4] = rot.getComponent<0>();
-			buffer[currentPos + 5] = rot.getComponent<1>();
-			buffer[currentPos + 6] = rot.getComponent<2>();
-			buffer[currentPos + 7] = rot.getComponent<3>();
+			buffer[currentPos + 3] = rot.getComponent<0>();
+			buffer[currentPos + 4] = rot.getComponent<1>();
+			buffer[currentPos + 5] = rot.getComponent<2>();
+			buffer[currentPos + 6] = rot.getComponent<3>();
+
+			buffer[currentPos + 7] = static_cast<float>(ptr->id);
 		}
 
 		currentCount++;
@@ -196,6 +244,8 @@ int ReadPhysicsWorldBodys(sPhysicsWorld* world, float *buffer, int count)
 		world->bodyCurrentIndex++;
 	}
 	return world->bodyList.getSize() - world->bodyCurrentIndex;
+
+	TRY_END(0)
 }
 
 void TestAssert() {

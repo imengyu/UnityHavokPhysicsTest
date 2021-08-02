@@ -9,7 +9,7 @@ public interface ITagNames
     IReadOnlyList<string> TagNames { get; }
 }
 
-[CreateAssetMenu(menuName = "PhysicsRT/Custom Physics Material Tag Names", fileName = "Custom Material Tag Names")]
+[CreateAssetMenu(menuName = "PhysicsRT/Custom Physics Material Tag Names", fileName = "CustomMaterialTagNames")]
 public sealed partial class CustomPhysicsMaterialTagNames : ScriptableObject, ITagNames
 {
     CustomPhysicsMaterialTagNames() { }

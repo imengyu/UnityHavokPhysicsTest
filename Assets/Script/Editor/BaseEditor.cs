@@ -104,7 +104,9 @@ abstract class BaseEditor : UnityEditor.Editor
             }
         }
     }
+    protected virtual void DrawCustomGUI() {
 
+    }
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
@@ -113,6 +115,8 @@ abstract class BaseEditor : UnityEditor.Editor
 
         foreach (var guiControl in m_AutoFieldGUIControls)
             guiControl();
+            
+        DrawCustomGUI();
 
         if (EditorGUI.EndChangeCheck())
             serializedObject.ApplyModifiedProperties();

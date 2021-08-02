@@ -8,7 +8,7 @@ using UnityEngine.SceneManagement;
 namespace PhyicsRT
 {
     [AddComponentMenu("PhysicsRT/Physics World")]
-    [DefaultExecutionOrder(90)]
+    [DefaultExecutionOrder(190)]
     [DisallowMultipleComponent]
     public class PhysicsWorld : MonoBehaviour
     {
@@ -52,6 +52,9 @@ namespace PhyicsRT
         private int updateBufferSize = 0;
 
         private void Awake() {
+            var layerNames = Resources.Load<PhysicsLayerNames>("PhysicsLayerNames");
+            Debug.Assert(layerNames != null);
+
             updateBufferSize = PhysicsOptions.Instance.UpdateBufferSize;
 
             int currentScenseIndex = SceneManager.GetActiveScene().buildIndex;
@@ -65,7 +68,9 @@ namespace PhyicsRT
                     BroadPhaseWorldSize,
                     CollisionTolerance,
                     Continuous,
-                    VisualDebugger);
+                    VisualDebugger,
+                    0xffffffff,
+                    layerNames.GetGroupFilterMasks());
                 bodysUpdateBuffer = Marshal.AllocHGlobal(Marshal.SizeOf<float>() * 8 * updateBufferSize);
             }
         }
@@ -121,15 +126,12 @@ namespace PhyicsRT
                         dat[count * 8 + 1],
                         dat[count * 8 + 2]
                     );
-                    var rotation = new Quaternion(
-                        dat[count * 8 + 4],
-                        dat[count * 8 + 5],
-                        dat[count * 8 + 6],
-                        dat[count * 8 + 7]
+                    bodyCurrent.transform.rotation = new Quaternion(
+                        dat[count * 8 + 3], 
+                        dat[count * 8 + 4], 
+                        dat[count * 8 + 5], 
+                        dat[count * 8 + 6]
                     );
-
-                    var euler = rotation.eulerAngles;
-                    bodyCurrent.transform.eulerAngles = new Vector3(euler.y, euler.z - 180, euler.x);
 
                     count++;
                     bodyCurrent = bodyCurrent.next;

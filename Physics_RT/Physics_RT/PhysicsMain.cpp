@@ -36,6 +36,7 @@ static void HK_CALL errorReport(const char* msg, void* userArgGivenToInit)
 }
 
 void initCrashHandler();
+void lateDeleteWordInfo();
 
 sInitStruct initStruct;
 void** apiArray = nullptr;
@@ -160,6 +161,7 @@ EXTERN_C_API int quit() {
 		hkBaseSystem::quit();
 		hkMemoryInitUtil::quit();
 
+		lateDeleteWordInfo();
 		DestroyFunctions();
 		DestroySmallPool();
 		initSuccess = false;

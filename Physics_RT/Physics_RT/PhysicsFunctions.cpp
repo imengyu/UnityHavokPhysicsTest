@@ -51,7 +51,8 @@ void APIErrorReport(const char* msg, void* userArgGivenToInit)
 void APICatchHandler(std::exception& e) {
 	lastHasException = true;
 #ifdef _MSC_VER
-		strcpy_s(lastException, e.what());
+	if (IsDebuggerPresent()) throw e;
+	else strcpy_s(lastException, e.what());
 #else
 		strcpy(lastException, e.what());
 #endif
@@ -119,16 +120,17 @@ spVec4 CreateVec4(float x, float y, float z, float w) {
 	else {
 		v = new sVec4();
 	}
+
 	v->x = x;
 	v->y = y;
 	v->z = z;
-	v->z = w;
+	v->w = w;
 	return v;
 }
 
 void DestroyVec4(const spVec4 ptr)
 {
-	CHECK_PARAM_PTR(ptr, "ptr");
+	CHECK_PARAM_PTR(ptr);
 	if (smallPoolSpVec4.size() < (size_t)initStruct.smallPoolSize) 
 		smallPoolSpVec4.push_back(ptr);
 	else
@@ -136,7 +138,7 @@ void DestroyVec4(const spVec4 ptr)
 }
 void DestroyVec3(const spVec3 ptr)
 {
-	CHECK_PARAM_PTR(ptr, "ptr");
+	CHECK_PARAM_PTR(ptr);
 	if (smallPoolSpVec3.size() < (size_t)initStruct.smallPoolSize)
 		smallPoolSpVec3.push_back(ptr);
 	else
@@ -144,7 +146,7 @@ void DestroyVec3(const spVec3 ptr)
 }
 void DestroyTransform(const spTransform ptr)
 {
-	CHECK_PARAM_PTR(ptr, "ptr");
+	CHECK_PARAM_PTR(ptr)
 	if (smallPoolSpTransform.size() < (size_t)initStruct.smallPoolSize)
 		smallPoolSpTransform.push_back(ptr);
 	else
@@ -153,23 +155,23 @@ void DestroyTransform(const spTransform ptr)
 
 void CommonDelete(const void* ptr)
 {
-	CHECK_PARAM_PTR(ptr, "ptr");
+	CHECK_PARAM_PTR(ptr);
 	delete ptr;
 }
 hkVector4 Vec3TohkVec4(const spVec3 vec3) {
-	CHECK_PARAM_PTR_RET(vec3, "vec3", hkVector4());
+	CHECK_PARAM_PTR(vec3);
 	return hkVector4(vec3->x, vec3->y, vec3->z);  
 }
 hkVector4 Vec4TohkVec4(const spVec4 vec4) {
-	CHECK_PARAM_PTR_RET(vec4, "vec4", hkVector4());
+	CHECK_PARAM_PTR(vec4);
 	return hkVector4(vec4->x, vec4->y, vec4->z, vec4->w); 
 }
 hkQuaternion Vec4TohkQuaternion(const spVec4 vec4) { 
-	CHECK_PARAM_PTR_RET(vec4, "vec4", hkQuaternion());
+	CHECK_PARAM_PTR(vec4);
 	return hkQuaternion(vec4->x, vec4->y, vec4->z, vec4->w); 
 }
 hkQsTransform TransformTohkQsTransform(const spTransform transform) {
-	CHECK_PARAM_PTR_RET(transform, "transform", hkQsTransform());
+	CHECK_PARAM_PTR(transform);
 	return hkQsTransform(
 		hkVector4(transform->positionX, transform->positionY, transform->positionZ),
 		hkQuaternion(transform->rotationX, transform->rotationY, transform->rotationZ, transform->rotationW),
@@ -242,6 +244,8 @@ void InitFunctions()
 	apiArray[i++] = StaticCompoundShapeEnableAllInstancesAndShapeKeys;
 	apiArray[i++] = DestroyShape;
 	apiArray[i++] = TestAssert;
+	apiArray[i++] = SetRigdBodyLayer;
+	apiArray[i++] = SetPhysicsWorldCollisionLayerMasks;
 }
 
 void DestroyFunctions() {

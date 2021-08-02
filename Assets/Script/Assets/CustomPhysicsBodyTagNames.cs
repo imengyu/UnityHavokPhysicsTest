@@ -4,7 +4,7 @@ using System.Linq;
 using UnityEngine;
 
 
-[CreateAssetMenu(menuName = "PhysicsRT/Custom Physics Body Tag Names", fileName = "Custom Physics Body Tag Names")]
+[CreateAssetMenu(menuName = "PhysicsRT/Custom Physics Body Tag Names", fileName = "CustomPhysicsBodyTagNames")]
 public sealed class CustomPhysicsBodyTagNames : ScriptableObject, ITagNames
 {
     CustomPhysicsBodyTagNames() { }

@@ -53,7 +53,8 @@ public class PhysicsShapeEditorTool : EditorTool
 
     var shape = target as PhysicsShape;
 
-    var sOrientation = shape.Wrap == ShapeWrap.TransformShape ? Quaternion.Euler(shape.ShapeRotation) : Quaternion.Euler(Vector3.zero);
+    var sScale = shape.Wrap == ShapeWrap.TransformShape ? shape.ShapeScale : Vector3.one;
+    var sOrientation = shape.Wrap == ShapeWrap.TransformShape ? Quaternion.Euler(shape.ShapeRotation) : Quaternion.Euler(shape.ShapeType == ShapeType.Box ? 0 : 90, 0, 0);
     var sTranslation = shape.Wrap == ShapeWrap.None ? Vector3.zero : shape.ShapeTranslation;
 
     var handleColor = shape.enabled ? k_ShapeHandleColor : k_ShapeHandleColorDisabled;
@@ -68,7 +69,7 @@ public class PhysicsShapeEditorTool : EditorTool
           s_Box.size = shape.ShapeSize;
           EditorGUI.BeginChangeCheck();
           {
-            using (new Handles.DrawingScope(math.mul(Handles.matrix, float4x4.TRS(sTranslation, sOrientation, 1f))))
+            using (new Handles.DrawingScope(math.mul(Handles.matrix, float4x4.TRS(sTranslation, sOrientation, sScale))))
               s_Box.DrawHandle();
           }
           if (EditorGUI.EndChangeCheck())
@@ -84,7 +85,7 @@ public class PhysicsShapeEditorTool : EditorTool
           s_Capsule.radius = shape.ShapeRadius;
           EditorGUI.BeginChangeCheck();
           {
-            using (new Handles.DrawingScope(math.mul(Handles.matrix, float4x4.TRS(sTranslation, sOrientation, 1f))))
+            using (new Handles.DrawingScope(math.mul(Handles.matrix, float4x4.TRS(sTranslation, sOrientation, sScale))))
               s_Capsule.DrawHandle();
           }
           if (EditorGUI.EndChangeCheck())
@@ -99,7 +100,7 @@ public class PhysicsShapeEditorTool : EditorTool
           s_Sphere.radius = shape.ShapeRadius;
           EditorGUI.BeginChangeCheck();
           {
-            using (new Handles.DrawingScope(math.mul(Handles.matrix, float4x4.TRS(sTranslation, sOrientation, 1f))))
+            using (new Handles.DrawingScope(math.mul(Handles.matrix, float4x4.TRS(sTranslation, sOrientation, sScale))))
               s_Sphere.DrawHandle();
           }
           if (EditorGUI.EndChangeCheck())
@@ -116,7 +117,7 @@ public class PhysicsShapeEditorTool : EditorTool
           s_Cylinder.bevelRadius = shape.ShapeConvexRadius;
           EditorGUI.BeginChangeCheck();
           {
-            using (new Handles.DrawingScope(math.mul(Handles.matrix, float4x4.TRS(sTranslation, sOrientation, 1f))))
+            using (new Handles.DrawingScope(math.mul(Handles.matrix, float4x4.TRS(sTranslation, sOrientation, sScale))))
               s_Cylinder.DrawHandle();
           }
           if (EditorGUI.EndChangeCheck())
@@ -134,7 +135,7 @@ public class PhysicsShapeEditorTool : EditorTool
             s_Plane.size = new float3(size2.x, size2.y, size2.z);
             EditorGUI.BeginChangeCheck();
             {
-              var m = math.mul(shape.transform.localToWorldMatrix, float4x4.TRS(sTranslation, sOrientation, 1f));
+              var m = math.mul(shape.transform.localToWorldMatrix, float4x4.TRS(sTranslation, sOrientation, sScale));
               using (new Handles.DrawingScope(m))
                 s_Plane.DrawHandle();
               var right = math.mul(m, new float4 { x = 1f }).xyz;

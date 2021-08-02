@@ -27,7 +27,7 @@ namespace PhyicsRT
   public delegate IntPtr fnCreateRigdBody(
       IntPtr world,
       IntPtr shape, IntPtr position, IntPtr rot,
-      int motionType, int qualityType, float friction, float restitution, float mass, int active,
+      int motionType, int qualityType, float friction, float restitution, float mass, int active, int layer,
       float gravityFactor, float linearDamping, float angularDamping,
       IntPtr linearVelocity,
       IntPtr angularVelocity,
@@ -55,7 +55,7 @@ namespace PhyicsRT
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate void fnSetRigdBodyMotionType(IntPtr body, int newState);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnDestroyRigdBody(IntPtr world, IntPtr body);
+  public delegate void fnDestroyRigdBody(IntPtr body);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate void fnSetRigdBodyGravityFactor(IntPtr body, float gravityFactor);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -115,7 +115,7 @@ namespace PhyicsRT
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate IntPtr fnCreatePhysicsWorld(IntPtr gravity,
       int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance,
-      bool bContinuous, bool bVisualDebugger);
+      bool bContinuous, bool bVisualDebugger, uint layerMask, IntPtr layerToMask);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate void fnDestroyPhysicsWorld(IntPtr world);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -124,6 +124,10 @@ namespace PhyicsRT
   public delegate void fnSetPhysicsWorldGravity(IntPtr world, IntPtr gravity);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate int fnReadPhysicsWorldBodys(IntPtr world, IntPtr buffer, int count);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnSetPhysicsWorldCollisionLayerMasks(IntPtr world, uint layerId, uint toMask, int enable, int forceUpdate);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnSetRigdBodyLayer(IntPtr body, int layer);
 
   #endregion
 
@@ -176,7 +180,7 @@ namespace PhyicsRT
       _SetRigdBodyGravityFactor = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyGravityFactor>(apiArray[i++]);
       _GetConvexHullResultTriangles = Marshal.GetDelegateForFunctionPointer<fnGetConvexHullResultTriangles>(apiArray[i++]);
       _GetConvexHullResultVertices = Marshal.GetDelegateForFunctionPointer<fnGetConvexHullResultVertices>(apiArray[i++]);
-       _Build3DPointsConvexHull = Marshal.GetDelegateForFunctionPointer<fnBuild3DPointsConvexHull>(apiArray[i++]);
+      _Build3DPointsConvexHull = Marshal.GetDelegateForFunctionPointer<fnBuild3DPointsConvexHull>(apiArray[i++]);
       _Build3DFromPlaneConvexHull = Marshal.GetDelegateForFunctionPointer<fnBuild3DFromPlaneConvexHull>(apiArray[i++]);
       _DestroyRigdBody = Marshal.GetDelegateForFunctionPointer<fnDestroyRigdBody>(apiArray[i++]);
       _ComputeShapeVolumeMassProperties = Marshal.GetDelegateForFunctionPointer<fnComputeShapeVolumeMassProperties>(apiArray[i++]);
@@ -203,6 +207,8 @@ namespace PhyicsRT
       _StaticCompoundShapeEnableAllInstancesAndShapeKeys = Marshal.GetDelegateForFunctionPointer<fnStaticCompoundShapeEnableAllInstancesAndShapeKeys>(apiArray[i++]);
       _DestroyShape = Marshal.GetDelegateForFunctionPointer<fnDestroyShape>(apiArray[i++]);
 	    _TestAssert = Marshal.GetDelegateForFunctionPointer<fnTestAssert>(apiArray[i++]);
+	    _SetRigdBodyLayer = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyLayer>(apiArray[i++]);
+	    _SetPhysicsWorldCollisionLayerMasks = Marshal.GetDelegateForFunctionPointer<fnSetPhysicsWorldCollisionLayerMasks>(apiArray[i++]);
     }
 
     private fnTestAssert _TestAssert;
@@ -259,7 +265,8 @@ namespace PhyicsRT
     private fnStaticCompoundShapeIsInstanceEnabled _StaticCompoundShapeIsInstanceEnabled;
     private fnStaticCompoundShapeEnableAllInstancesAndShapeKeys _StaticCompoundShapeEnableAllInstancesAndShapeKeys;
     private fnDestroyShape _DestroyShape;
-
+    private fnSetPhysicsWorldCollisionLayerMasks _SetPhysicsWorldCollisionLayerMasks;
+    private fnSetRigdBodyLayer _SetRigdBodyLayer;
 
     public void CommonDelete(IntPtr ptr)
     {
@@ -316,12 +323,12 @@ namespace PhyicsRT
         throw new ApiNotFoundException("DestroyTransform");
       _DestroyTransform(ptr);
     }
-    public IntPtr CreateRigdBody(IntPtr world, IntPtr shape, IntPtr position, IntPtr rot, int motionType, int qualityType, float friction, float restitution, float mass, int active, float gravityFactor, float linearDamping, float angularDamping, IntPtr linearVelocity, IntPtr angularVelocity, IntPtr massProperties)
+    public IntPtr CreateRigdBody(IntPtr world, IntPtr shape, IntPtr position, IntPtr rot, int motionType, int qualityType, float friction, float restitution, float mass, int active, int layer, float gravityFactor, float linearDamping, float angularDamping, IntPtr linearVelocity, IntPtr angularVelocity, IntPtr massProperties)
     {
       if (_CreateRigdBody == null)
         throw new ApiNotFoundException("CreateRigdBody");
 
-      var rs = _CreateRigdBody(world, shape, position, rot, motionType, qualityType, friction, restitution, mass, active, gravityFactor, linearDamping, angularDamping, linearVelocity, angularVelocity, massProperties);
+      var rs = _CreateRigdBody(world, shape, position, rot, motionType, qualityType, friction, restitution, mass, active, layer, gravityFactor, linearDamping, angularDamping, linearVelocity, angularVelocity, massProperties);
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
@@ -427,12 +434,23 @@ namespace PhyicsRT
       if (exp != null)
         throw new ApiException(exp);
     }
-    public void DestroyRigdBody(IntPtr world, IntPtr body)
+    public void SetRigdBodyLayer(IntPtr body, int layer) 
+    {
+      if (_SetRigdBodyLayer == null)
+        throw new ApiNotFoundException("SetRigdBodyLayer");
+
+      _SetRigdBodyLayer(body, layer);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void DestroyRigdBody(IntPtr body)
     {
       if (_DestroyRigdBody == null)
         throw new ApiNotFoundException("DestroyRigdBody");
 
-      _DestroyRigdBody(world, body);
+      _DestroyRigdBody(body);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
@@ -768,12 +786,23 @@ namespace PhyicsRT
       if (exp != null)
         throw new ApiException(exp);
     }
-    public IntPtr CreatePhysicsWorld(IntPtr gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance, bool bContinuous, bool bVisualDebugger)
+    public IntPtr CreatePhysicsWorld(IntPtr gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance, bool bContinuous, bool bVisualDebugger, uint layerMask, uint[] layerToMask)
     {
       if (_CreatePhysicsWorld == null)
         throw new ApiNotFoundException("CreatePhysicsWorld");
 
-      var rs = _CreatePhysicsWorld(gravity, solverIterationCount, broadPhaseWorldSize, collisionTolerance, bContinuous, bVisualDebugger);
+      //uint[] to native
+      IntPtr layerToMaskPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>() * 32);
+      IntPtr layerToMaskPtr2 = new IntPtr(layerToMaskPtr.ToInt64());
+      for(int i = 0; i < layerToMask.Length && i < 32; i++){
+        Marshal.WriteInt32(layerToMaskPtr, (int)layerToMask[i]);
+        layerToMaskPtr2 = new IntPtr(layerToMaskPtr2.ToInt64() + i);
+      }
+
+      var rs = _CreatePhysicsWorld(gravity, solverIterationCount, broadPhaseWorldSize, collisionTolerance, bContinuous, bVisualDebugger, layerMask, layerToMaskPtr);
+
+      Marshal.FreeHGlobal(layerToMaskPtr);
+
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
@@ -796,6 +825,10 @@ namespace PhyicsRT
       if (_StepPhysicsWorld == null)
         throw new ApiNotFoundException("StepPhysicsWorld");
       _StepPhysicsWorld(world, timestep);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
     }
     public void SetPhysicsWorldGravity(IntPtr world, IntPtr gravity)
     {
@@ -808,12 +841,28 @@ namespace PhyicsRT
       if (exp != null)
         throw new ApiException(exp);
     }
+    public void SetPhysicsWorldCollisionLayerMasks(IntPtr world, uint layerId, uint toMask, int enable, int forceUpdate) {
+      if (_SetPhysicsWorldCollisionLayerMasks == null)
+        throw new ApiNotFoundException("SetPhysicsWorldCollisionLayerMasks");
+
+      _SetPhysicsWorldCollisionLayerMasks(world, layerId, toMask, enable, forceUpdate);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
     public int ReadPhysicsWorldBodys(IntPtr world, IntPtr buffer, int count)
     {
       if (_ReadPhysicsWorldBodys == null)
         throw new ApiNotFoundException("ReadPhysicsWorldBodys");
 
-      return _ReadPhysicsWorldBodys(world, buffer, count);
+      var rs = _ReadPhysicsWorldBodys(world, buffer, count);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
     }
     public void TestAssert()
     {
@@ -825,7 +874,6 @@ namespace PhyicsRT
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
-    }
-    
+    }   
   };
 }

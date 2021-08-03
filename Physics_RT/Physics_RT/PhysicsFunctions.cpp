@@ -74,6 +74,7 @@ EXTERN_C_API int checkException(char* errBuffer, size_t size) {
 std::list<spTransform> smallPoolSpTransform;
 std::list<spVec3> smallPoolSpVec3;
 std::list<spVec4> smallPoolSpVec4;
+std::list<spMatrix4> smallPoolSpMatrix4;
 
 spTransform CreateTransform(float px, float py, float pz, float rx, float ry, float rz, float rw, float sx, float sy, float sz)
 {
@@ -127,6 +128,42 @@ spVec4 CreateVec4(float x, float y, float z, float w) {
 	v->w = w;
 	return v;
 }
+spMatrix4 CreateMatrix4(float *r, int isMatrix4) {
+	spMatrix4 v = nullptr;
+	if (smallPoolSpMatrix4.size() > 0) {
+		v = smallPoolSpMatrix4.front();
+		smallPoolSpMatrix4.pop_front();
+	}
+	else {
+		v = new sMatrix4();
+	}
+
+	if (isMatrix4) { //4x4
+#ifdef _MSC_VER
+		memcpy_s(v->r0, sizeof(v->r0), r, sizeof(float) * 4);
+		memcpy_s(v->r1, sizeof(v->r1), r + 4, sizeof(float) * 4);
+		memcpy_s(v->r2, sizeof(v->r2), r + 8, sizeof(float) * 4);
+		memcpy_s(v->r3, sizeof(v->r3), r + 12, sizeof(float) * 4);
+#else
+		memcpy(v->r0, r, sizeof(v->r0));
+		memcpy(v->r1, r + 4, sizeof(v->r1));
+		memcpy(v->r2, r + 8, sizeof(v->r2));
+		memcpy(v->r3, r + 12, sizeof(v->r3));
+#endif
+	}
+	else { //3x3
+#ifdef _MSC_VER
+		memcpy_s(v->r0, sizeof(v->r0), r, sizeof(float) * 3);
+		memcpy_s(v->r1, sizeof(v->r1), r + 4, sizeof(float) * 3);
+		memcpy_s(v->r2, sizeof(v->r2), r + 8, sizeof(float) * 3);
+#else
+		memcpy(v->r0, r, sizeof(float) * 3);
+		memcpy(v->r1, r + 4, sizeof(float) * 3);
+		memcpy(v->r2, r + 8, sizeof(float) * 3);
+#endif
+	}
+	return v;
+}
 
 void DestroyVec4(const spVec4 ptr)
 {
@@ -144,6 +181,14 @@ void DestroyVec3(const spVec3 ptr)
 	else
 		delete ptr;
 }
+void DestroyMatrix4(const spMatrix4 ptr)
+{
+	CHECK_PARAM_PTR(ptr);
+	if (smallPoolSpMatrix4.size() < (size_t)initStruct.smallPoolSize)
+		smallPoolSpMatrix4.push_back(ptr);
+	else
+		delete ptr;
+}
 void DestroyTransform(const spTransform ptr)
 {
 	CHECK_PARAM_PTR(ptr)
@@ -158,6 +203,7 @@ void CommonDelete(const void* ptr)
 	CHECK_PARAM_PTR(ptr);
 	delete ptr;
 }
+
 hkVector4 Vec3TohkVec4(const spVec3 vec3) {
 	CHECK_PARAM_PTR(vec3);
 	return hkVector4(vec3->x, vec3->y, vec3->z);  
@@ -178,12 +224,59 @@ hkQsTransform TransformTohkQsTransform(const spTransform transform) {
 		hkVector4(transform->scaleX, transform->scaleY, transform->scaleZ)
 	); 
 }
+hkMatrix4 Matrix4TohkMatrix4(const spMatrix4 mat) {
+	CHECK_PARAM_PTR(mat);
+
+	hkMatrix4 mkt;
+	mkt.setElement<0, 0>(mat->r0[0]);
+	mkt.setElement<0, 1>(mat->r0[1]);
+	mkt.setElement<0, 2>(mat->r0[2]);
+	mkt.setElement<0, 3>(mat->r0[3]);
+
+	mkt.setElement<1, 0>(mat->r1[0]);
+	mkt.setElement<1, 1>(mat->r1[1]);
+	mkt.setElement<1, 2>(mat->r1[2]);
+	mkt.setElement<1, 3>(mat->r1[3]);
+
+	mkt.setElement<2, 0>(mat->r2[0]);
+	mkt.setElement<2, 1>(mat->r2[1]);
+	mkt.setElement<2, 2>(mat->r2[2]);
+	mkt.setElement<2, 3>(mat->r2[2]);
+
+	mkt.setElement<3, 0>(mat->r3[0]);
+	mkt.setElement<3, 1>(mat->r3[1]);
+	mkt.setElement<3, 2>(mat->r3[2]);
+	mkt.setElement<3, 3>(mat->r3[2]);
+
+	return mkt;
+}
+hkMatrix3 Matrix4TohkMatrix3(const spMatrix4 mat) {
+	CHECK_PARAM_PTR(mat);
+
+	hkMatrix3 mkt;
+	mkt.setElement<0, 0>(mat->r0[0]);
+	mkt.setElement<0, 1>(mat->r0[1]);
+	mkt.setElement<0, 2>(mat->r0[2]);
+
+	mkt.setElement<1, 0>(mat->r1[0]);
+	mkt.setElement<1, 1>(mat->r1[1]);
+	mkt.setElement<1, 2>(mat->r1[2]);
+
+	mkt.setElement<2, 0>(mat->r2[0]);
+	mkt.setElement<2, 1>(mat->r2[1]);
+	mkt.setElement<2, 2>(mat->r2[2]);
+
+	return mkt;
+}
+
+extern void setBuildUUID(char* uuid);
 
 void InitSmallPool() {
 	for (int i = 0; i < initStruct.smallPoolSize && i < 512; i++) {
 		smallPoolSpTransform.push_back(new sTransform());
 		smallPoolSpVec3.push_back(new sVec3());
 		smallPoolSpVec4.push_back(new sVec4());
+		smallPoolSpMatrix4.push_back(new sMatrix4());
 	}
 }
 void InitFunctions()
@@ -202,24 +295,24 @@ void InitFunctions()
 	apiArray[i++] = StepPhysicsWorld;
 	apiArray[i++] = SetPhysicsWorldGravity;
 	apiArray[i++] = ReadPhysicsWorldBodys;
-	apiArray[i++] = CreateRigdBody;
-	apiArray[i++] = ActiveRigdBody;
-	apiArray[i++] = DeactiveRigdBody;
-	apiArray[i++] = SetRigdBodyMass;
-	apiArray[i++] = SetRigdBodyFriction;
-	apiArray[i++] = SetRigdBodyRestitution;
-	apiArray[i++] = SetRigdBodyCenterOfMass;
-	apiArray[i++] = SetRigdBodyPosition;
-	apiArray[i++] = SetRigdBodyPositionAndRotation;
-	apiArray[i++] = SetRigdBodyAngularDamping;
-	apiArray[i++] = SetRigdBodyLinearDampin;
-	apiArray[i++] = SetRigdBodyMotionType;
-	apiArray[i++] = SetRigdBodyGravityFactor;
+	apiArray[i++] = CreateRigidBody;
+	apiArray[i++] = ActiveRigidBody;
+	apiArray[i++] = DeactiveRigidBody;
+	apiArray[i++] = SetRigidBodyMass;
+	apiArray[i++] = SetRigidBodyFriction;
+	apiArray[i++] = SetRigidBodyRestitution;
+	apiArray[i++] = SetRigidBodyCenterOfMass;
+	apiArray[i++] = SetRigidBodyPosition;
+	apiArray[i++] = SetRigidBodyPositionAndRotation;
+	apiArray[i++] = SetRigidBodyAngularDamping;
+	apiArray[i++] = SetRigidBodyLinearDampin;
+	apiArray[i++] = SetRigidBodyMotionType;
+	apiArray[i++] = SetRigidBodyGravityFactor;
 	apiArray[i++] = GetConvexHullResultTriangles;
 	apiArray[i++] = GetConvexHullResultVertices;
 	apiArray[i++] = Build3DPointsConvexHull;
 	apiArray[i++] = Build3DFromPlaneConvexHull;
-	apiArray[i++] = DestroyRigdBody;
+	apiArray[i++] = DestroyRigidBody;
 	apiArray[i++] = ComputeShapeVolumeMassProperties;
 	apiArray[i++] = ComputeBoxSurfaceMassProperties;
 	apiArray[i++] = ComputeBoxVolumeMassProperties;
@@ -244,8 +337,45 @@ void InitFunctions()
 	apiArray[i++] = StaticCompoundShapeEnableAllInstancesAndShapeKeys;
 	apiArray[i++] = DestroyShape;
 	apiArray[i++] = TestAssert;
-	apiArray[i++] = SetRigdBodyLayer;
+	apiArray[i++] = SetRigidBodyLayer;
 	apiArray[i++] = SetPhysicsWorldCollisionLayerMasks;
+	apiArray[i++] = CreateMatrix4;
+	apiArray[i++] = DestroyMatrix4;
+	apiArray[i++] = SetRigidBodyLinearVelocity;
+	apiArray[i++] = SetRigidBodyAngularVelocity;
+	apiArray[i++] = SetRigidBodyInertiaTensor;
+	apiArray[i++] = GetRigidBodyPosition;
+	apiArray[i++] = GetRigidBodyRotation;
+	apiArray[i++] = GetRigidBodyAngularVelocity;
+	apiArray[i++] = GetRigidBodyLinearVelocity;
+	apiArray[i++] = GetRigidBodyCenterOfMassInWorld;
+	apiArray[i++] = GetRigidBodyPointVelocity;
+	apiArray[i++] = RigidBodyResetCenterOfMass;
+	apiArray[i++] = RigidBodyResetInertiaTensor;
+	apiArray[i++] = SetRigidBodyMaxLinearVelocity;
+	apiArray[i++] = SetRigidBodyMaxAngularVelocity;
+	apiArray[i++] = DestoryConstraints;
+	apiArray[i++] = CreateBallAndSocketConstraint;
+	apiArray[i++] = CreateFixedConstraint;
+	apiArray[i++] = CreateStiffSpringConstraint;
+	apiArray[i++] = CreateHingeConstraint;
+	apiArray[i++] = CreateLimitedHingeConstraint;
+	apiArray[i++] = CreateWheelConstraint;
+	apiArray[i++] = CreatePulleyConstraint;
+	apiArray[i++] = CreatePrismaticConstraint;
+	apiArray[i++] = CreateCogWheelConstraint;
+	apiArray[i++] = RigidBodyApplyForce;
+	apiArray[i++] = RigidBodyApplyForceAtPoint;
+	apiArray[i++] = RigidBodyApplyTorque;
+	apiArray[i++] = RigidBodyApplyAngularImpulse;
+	apiArray[i++] = RigidBodyApplyLinearImpulse;
+	apiArray[i++] = RigidBodyApplyPointImpulse;
+	apiArray[i++] = IsConstraintBroken;
+	apiArray[i++] = SetConstraintBroken;
+	apiArray[i++] = GetRigidBodyId;
+
+
+	apiArray[255] = setBuildUUID;
 }
 
 void DestroyFunctions() {
@@ -261,6 +391,9 @@ void DestroySmallPool() {
 		delete* it;
 	for (auto it = smallPoolSpVec4.begin(); it != smallPoolSpVec4.end(); it++)
 		delete* it;
+	for (auto it = smallPoolSpMatrix4.begin(); it != smallPoolSpMatrix4.end(); it++)
+		delete* it;
+	smallPoolSpMatrix4.clear();
 	smallPoolSpTransform.clear();
 	smallPoolSpVec4.clear();
 	smallPoolSpVec3.clear();

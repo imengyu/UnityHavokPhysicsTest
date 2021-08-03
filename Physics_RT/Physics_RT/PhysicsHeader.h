@@ -22,8 +22,13 @@
 #include <Physics2012/Collide/Filter/Group/hkpGroupFilter.h>
 
 #include <Physics2012/Dynamics/World/hkpWorld.h>								
-#include <Physics2012/Dynamics/Entity/hkpRigidBody.h>							
+#include <Physics2012/Dynamics/Entity/hkpRigidBody.h>					
+#include <Physics2012/Dynamics/Constraint/hkpConstraintInstance.h>		
+#include <Physics2012/Dynamics/Constraint/Breakable/hkpBreakableConstraintData.h>
+#include <Physics2012/Dynamics/Constraint/Breakable/hkpBreakableListener.h>
+
 #include <Physics2012/Utilities/Dynamics/Inertia/hkpInertiaTensorComputer.h>	
+#include <Physics2012/Utilities/Collide/TriggerVolume/hkpTriggerVolume.h> 
 
 #include <Common/Base/Thread/Job/ThreadPool/Cpu/hkCpuJobThreadPool.h>
 #if defined(HK_PLATFORM_HAS_SPU)

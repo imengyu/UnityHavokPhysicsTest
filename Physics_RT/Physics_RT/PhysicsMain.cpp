@@ -254,3 +254,7 @@ void initCrashHandler() {
 	SetUnhandledExceptionFilter(AppUnhandledExceptionFilter);
 #endif // _WINDOWS
 }
+
+void setBuildUUID(char* uuid) {
+
+}

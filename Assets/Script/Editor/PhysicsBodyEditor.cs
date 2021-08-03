@@ -67,9 +67,10 @@ class PhysicsBodyEditor : Editor
     {
         serializedObject.Update();
         instance = (PhysicsBody)target;
-        instance.BackUpRuntimeCanModifieProperties();
+        //Update value at runtime
+        if(EditorApplication.isPlaying)
+            instance.BackUpRuntimeCanModifieProperties();
         EditorGUI.BeginChangeCheck();
-
 
         EditorGUILayout.PropertyField(pMotionType);
         if(EditorApplication.isPlaying)

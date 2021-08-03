@@ -16,7 +16,8 @@ void lateDeleteWordInfo() {
 }
 
 sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance, 
-	bool bContinuous, bool bVisualDebugger, unsigned int layerMask, unsigned int *layerToMask)
+	bool bContinuous, bool bVisualDebugger, unsigned int layerMask, unsigned int *layerToMask,
+	fnOnConstraintBreakingCallback onConstraintBreakingCallback, fnOnBodyTriggerEnterCallback onBodyTriggerEnterCallback, fnOnBodyTriggerLeaveCallback onBodyTriggerLeaveCallback)
 {
 	TRY_BEGIN
 
@@ -93,9 +94,6 @@ sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, floa
 			hkpPhysicsContext::registerAllPhysicsProcesses(); // all the physics viewers
 			context->addWorld(physicsWorld); // add the physics world so the viewers can see it
 			contexts.pushBack(context);
-
-			// Now we have finished modifying the world, release our write marker.
-			physicsWorld->unmarkForWrite();
 		}
 
 		hkVisualDebugger* vdb = new hkVisualDebugger(contexts);
@@ -119,6 +117,15 @@ sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, floa
 
 	def->filter = filter;
 	def->physicsWorld = physicsWorld;
+	def->callbacks.onConstraintBreakingCallback = onConstraintBreakingCallback;
+	def->callbacks.onBodyTriggerEnterCallback = onBodyTriggerEnterCallback;
+	def->callbacks.onBodyTriggerLeaveCallback = onBodyTriggerLeaveCallback;
+
+	SetupWorldConstraintListener(def);
+
+	if(initStruct.mulithread)
+		physicsWorld->unmarkForWrite();// Now we have finished modifying the world, release our write marker.
+
 	return def;
 
 	TRY_END(nullptr)
@@ -130,6 +137,9 @@ void DestroyPhysicsWorld(sPhysicsWorld* world) {
 		if (world->physicsWorld) {
 			if (initStruct.mulithread)
 				world->physicsWorld->markForWrite();
+
+			DestroyWorldConstraintListener(world);
+
 			world->physicsWorld->removeReference();
 			world->physicsWorld = nullptr;
 		}

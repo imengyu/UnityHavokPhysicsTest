@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using PhyicsRT;
 using Unity.Mathematics;
 using Unity.Physics.Editor;
@@ -176,13 +177,8 @@ public class PhysicsShapeEditorTool : EditorTool
     {
       if (!disposedValue)
       {
-        if (disposing)
-        {
-          // TODO: 释放托管状态(托管对象)
-        }
-
-        // TODO: 释放未托管的资源(未托管的对象)并重写终结器
-        // TODO: 将大型字段设置为 null
+        lastGenerateMesh = null;
+        m_Edges = null;
         disposedValue = true;
       }
     }
@@ -198,15 +194,93 @@ public class PhysicsShapeEditorTool : EditorTool
       GC.SuppressFinalize(this);
     }
 
-    public void SchedulePreviewIfChanged(PhysicsShape shape) {
+    private Mesh lastGenerateMesh = null;
+    private float lastGenerateMeshConvexRadius = 0;
+    private ShapeType lastGenerateMeshShapeType = ShapeType.Box;
+    private Vector3[] m_Edges = null;
 
-    }
-
-    public Vector3[] Edges {
-      get {
-        return null;
+    private void GenerateEdges(Vector3[] vertices, int[] triangles) {
+      m_Edges = new Vector3[triangles.Length * 2];
+      int ie = 0;
+      for(int i = 0; i < triangles.Length; i += 3) {
+        m_Edges[ie++] = vertices[triangles[i]];
+        m_Edges[ie++] = vertices[triangles[i + 1]];
+        m_Edges[ie++] = vertices[triangles[i + 1]];
+        m_Edges[ie++] = vertices[triangles[i + 2]];
+        m_Edges[ie++] = vertices[triangles[i + 2]];
+        m_Edges[ie++] = vertices[triangles[i]];
       }
     }
+
+    public void SchedulePreviewIfChanged(PhysicsShape shape) {
+      if(lastGenerateMesh != shape.ShapeMesh || lastGenerateMeshConvexRadius != shape.ShapeConvexRadius || lastGenerateMeshShapeType != shape.ShapeType) {
+        lastGenerateMesh = shape.ShapeMesh;
+        lastGenerateMeshConvexRadius = shape.ShapeConvexRadius;
+        lastGenerateMeshShapeType = shape.ShapeType;
+
+        if(lastGenerateMeshShapeType == ShapeType.ConvexHull)  {
+
+          if(lastGenerateMesh.vertices.Length > 8192)
+          {
+            Debug.LogWarning("Mesh vertices too large " + lastGenerateMesh.vertices.Length + " > 8192");
+            return;
+          }
+
+          //vertices To HGlobal
+          float[] verticesArr = new float[lastGenerateMesh.vertices.Length * 3];
+          for (int i = 0; i < lastGenerateMesh.vertices.Length; i++)
+          {
+              verticesArr[i * 3 + 0] = lastGenerateMesh.vertices[i].x;
+              verticesArr[i * 3 + 1] = lastGenerateMesh.vertices[i].y;
+              verticesArr[i * 3 + 2] = lastGenerateMesh.vertices[i].z;
+          }
+          int bufferSize = Marshal.SizeOf<float>() * verticesArr.Length;
+          IntPtr verticesBuffer = Marshal.AllocHGlobal(bufferSize);
+          Marshal.Copy(verticesArr, 0, verticesBuffer, verticesArr.Length);
+
+          IntPtr convexHullResultPtr = PhysicsApi.API.Build3DPointsConvexHull(verticesBuffer, lastGenerateMesh.vertices.Length);
+          var convexHullResult = Marshal.PtrToStructure<sConvexHullResult>(convexHullResultPtr);
+
+          Marshal.FreeHGlobal(verticesBuffer);
+
+          //Read convex hull result vertices
+          float[] verticesArrResult = new float[convexHullResult.verticesCount * 3];
+          Vector3[] verticesVArrResult = new Vector3[convexHullResult.verticesCount];
+          int[] trianglesArrResult = new int[convexHullResult.trianglesCount * 3];
+
+          bufferSize = Marshal.SizeOf<float>() * verticesArrResult.Length;
+          IntPtr verticesArrResultBuffer = Marshal.AllocHGlobal(bufferSize);
+
+          PhysicsApi.API.GetConvexHullResultVertices(convexHullResultPtr, verticesArrResultBuffer, convexHullResult.verticesCount);
+          Marshal.Copy(verticesArrResult, 0, verticesArrResultBuffer, verticesArrResult.Length);
+          Marshal.FreeHGlobal(verticesArrResultBuffer);
+
+          bufferSize = Marshal.SizeOf<float>() * trianglesArrResult.Length;
+          IntPtr trianglesArrResultBuffer = Marshal.AllocHGlobal(bufferSize);
+
+          PhysicsApi.API.GetConvexHullResultTriangles(convexHullResultPtr, trianglesArrResultBuffer, convexHullResult.trianglesCount);
+          Marshal.Copy(trianglesArrResult, 0, trianglesArrResultBuffer, verticesArrResult.Length);
+          Marshal.FreeHGlobal(trianglesArrResultBuffer);
+
+          //float to Vector3
+          for(int i = 0; i < convexHullResult.verticesCount; i++) 
+            verticesVArrResult[i] = new Vector3(
+              verticesArrResult[i * 3],
+              verticesArrResult[i * 3 + 1],
+              verticesArrResult[i * 3 + 2]
+            );
+
+          PhysicsApi.API.CommonDelete(convexHullResultPtr);
+
+          //Convert to lines
+          GenerateEdges(verticesVArrResult, trianglesArrResult);
+        } else if(lastGenerateMeshShapeType == ShapeType.Mesh) {
+          GenerateEdges(lastGenerateMesh.vertices, lastGenerateMesh.triangles);
+        }
+      }
+    }
+
+    public Vector3[] Edges => m_Edges;
   }
 
   private Dictionary<PhysicsShape, PreviewMeshData> m_PreviewData = new Dictionary<PhysicsShape, PreviewMeshData>();

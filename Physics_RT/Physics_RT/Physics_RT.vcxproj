@@ -159,6 +159,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyErrorHandler.h" />
+    <ClInclude Include="PhysicsConstraints.h" />
+    <ClInclude Include="PhysicsListener.h" />
     <ClInclude Include="SimpleLinkedList.hpp" />
     <ClInclude Include="PhysicsBody.h" />
     <ClInclude Include="PhysicsCommon.h" />
@@ -188,7 +190,9 @@
     </ClCompile>
     <ClCompile Include="MyErrorHandler.cpp" />
     <ClCompile Include="PhysicsBody.cpp" />
+    <ClCompile Include="PhysicsConstraints.cpp" />
     <ClCompile Include="PhysicsFunctions.cpp" />
+    <ClCompile Include="PhysicsListener.cpp" />
     <ClCompile Include="PhysicsMain.cpp" />
     <ClCompile Include="PhysicsShape.cpp" />
     <ClCompile Include="PhysicsWorld.cpp" />

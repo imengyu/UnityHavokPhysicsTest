@@ -151,6 +151,14 @@ namespace PhyicsRT
         private float m_Restitution = 0.4f;
         [SerializeField]
         private int m_Layer = -1;
+        [SerializeField]
+        private Matrix4x4 m_InertiaTensor = Matrix4x4.identity;
+        [SerializeField]
+        [Tooltip("The maximum angular velocity of the body (in rad/s).")]
+        private float m_MaxAngularVelocity = 200;
+        [SerializeField]
+        [Tooltip("The maximum linear velocity of the body (in m/s).")]
+        private float m_MaxLinearVelocity = 200;
 
         private IntPtr ptr = IntPtr.Zero;
 
@@ -163,7 +171,7 @@ namespace PhyicsRT
                 if(m_Layer != value) {
                     m_Layer = value; 
                     if(ptr != IntPtr.Zero)
-                        PhysicsApi.API.SetRigdBodyLayer(ptr, m_Layer);
+                        PhysicsApi.API.SetRigidBodyLayer(ptr, m_Layer);
                 }
             }
         }  
@@ -176,7 +184,7 @@ namespace PhyicsRT
                 if(m_MotionType != value) {
                     m_MotionType = value; 
                     if(ptr != IntPtr.Zero)
-                        PhysicsApi.API.SetRigdBodyMotionType(ptr, (int)Convert(m_MotionType));
+                        PhysicsApi.API.SetRigidBodyMotionType(ptr, (int)Convert(m_MotionType));
                 }
             }
         }
@@ -212,7 +220,7 @@ namespace PhyicsRT
                 if(m_Mass != value) {
                     m_Mass = value; 
                     if(ptr != IntPtr.Zero)
-                        PhysicsApi.API.SetRigdBodyMass(ptr, value);
+                        PhysicsApi.API.SetRigidBodyMass(ptr, value);
                 }
             }
         }
@@ -229,10 +237,21 @@ namespace PhyicsRT
                 if(m_CenterOfMass != value) {
                     m_CenterOfMass = value; 
                     if(ptr != IntPtr.Zero) {
-                        IntPtr vptr = PhysicsApi.API.CreateVec3(value.x, value.y, value.z);
-                        PhysicsApi.API.SetRigdBodyCenterOfMass(ptr, vptr);
-                        PhysicsApi.API.DestroyVec3(vptr);
+                        PhysicsApi.API.SetRigidBodyCenterOfMass(ptr, value);
                     }
+                }
+            }
+        }
+        /// <summary>
+        /// 获取或设置刚体的惯性张量
+        /// </summary>
+        public Matrix4x4 InertiaTensor {
+            get => m_InertiaTensor; 
+            set {
+                if(m_InertiaTensor != value) {
+                    m_InertiaTensor = value; 
+                    if(ptr != IntPtr.Zero) 
+                        PhysicsApi.API.SetRigidBodyInertiaTensor(ptr, value);
                 }
             }
         }
@@ -245,7 +264,7 @@ namespace PhyicsRT
                 if(m_GravityFactor != value) {
                     m_GravityFactor = value; 
                     if(ptr != IntPtr.Zero)
-                        PhysicsApi.API.SetRigdBodyGravityFactor(ptr, m_GravityFactor);
+                        PhysicsApi.API.SetRigidBodyGravityFactor(ptr, m_GravityFactor);
                 }
             }
         }
@@ -258,7 +277,7 @@ namespace PhyicsRT
                 if(m_LinearDamping != value) {
                     m_LinearDamping = value; 
                     if(ptr != IntPtr.Zero)
-                        PhysicsApi.API.SetRigdBodyLinearDampin(ptr, m_LinearDamping);
+                        PhysicsApi.API.SetRigidBodyLinearDampin(ptr, m_LinearDamping);
                 }
             }
         }
@@ -271,7 +290,7 @@ namespace PhyicsRT
                 if(m_AngularDamping != value) {
                     m_AngularDamping = value; 
                     if(ptr != IntPtr.Zero)
-                        PhysicsApi.API.SetRigdBodyAngularDamping(ptr, m_AngularDamping);
+                        PhysicsApi.API.SetRigidBodyAngularDamping(ptr, m_AngularDamping);
                 }
             }
         }
@@ -284,7 +303,7 @@ namespace PhyicsRT
                 if(m_Friction != value) {
                     m_Friction = value;
                     if(ptr != IntPtr.Zero)
-                        PhysicsApi.API.SetRigdBodyFriction(ptr, m_Friction);
+                        PhysicsApi.API.SetRigidBodyFriction(ptr, m_Friction);
                 }
             }
         }
@@ -297,10 +316,15 @@ namespace PhyicsRT
                 if(m_Restitution != value) {
                     m_Restitution = value;
                     if(ptr != IntPtr.Zero)
-                        PhysicsApi.API.SetRigdBodyRestitution(ptr, m_Restitution);
+                        PhysicsApi.API.SetRigidBodyRestitution(ptr, m_Restitution);
                 }
             }
         }
+        /// <summary>
+        /// ID
+        /// </summary>
+        /// <value></value>
+        public int Id { get; private set; }
 
         public PhysicsBody prev { get; set; }
         public PhysicsBody next { get; set; }
@@ -326,12 +350,12 @@ namespace PhyicsRT
         private void OnEnable()
         {
             if(ptr != IntPtr.Zero)
-                PhysicsApi.API.ActiveRigdBody(ptr);
+                PhysicsApi.API.ActiveRigidBody(ptr);
         }
         private void OnDisable() 
         {
             if(ptr != IntPtr.Zero)
-                PhysicsApi.API.DeactiveRigdBody(ptr);
+                PhysicsApi.API.DeactiveRigidBody(ptr);
         }
         private void OnValidate()
         {
@@ -373,36 +397,31 @@ namespace PhyicsRT
                 return;
             }
 
-            IntPtr posVec3Ptr = PhysicsApi.API.CreateVec3(transform.position.x, transform.position.y, transform.position.z);
-            IntPtr rotVec4Ptr = PhysicsApi.API.CreateVec4(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
-            IntPtr linearVelocityVec3Ptr = PhysicsApi.API.CreateVec3(m_InitialLinearVelocity.x, m_InitialLinearVelocity.y, m_InitialLinearVelocity.z);
-            IntPtr angularVelocityVec3Ptr = PhysicsApi.API.CreateVec3(m_InitialAngularVelocity.x, m_InitialAngularVelocity.y, m_InitialAngularVelocity.z);
-
-            ptr = PhysicsApi.API.CreateRigdBody(
+            ptr = PhysicsApi.API.CreateRigidBody(
                 CurrentPhysicsWorld.GetPtr(),
                 GetShapeBody(), 
-                posVec3Ptr, 
-                rotVec4Ptr,
+                transform.position, 
+                transform.rotation,
                 Convert(m_MotionType),
                 (int)m_CollidableQualityType,
                 m_Friction,
                 m_Restitution,
                 m_Mass, 
-                gameObject.activeSelf ? 1 : 0, 
+                PhysicsApi.API.BoolToInt(gameObject.activeSelf), 
                 m_Layer,
                 m_GravityFactor,
                 m_LinearDamping,
                 m_AngularDamping,
-                linearVelocityVec3Ptr,
-                angularVelocityVec3Ptr,
+                m_CenterOfMass,
+                m_InertiaTensor,
+                m_InitialLinearVelocity,
+                m_InitialAngularVelocity,
+                m_MaxLinearVelocity,
+                m_MaxAngularVelocity,
                 currentShapeMassProperties);
 
-            CurrentPhysicsWorld.AddBody(this);
-
-            PhysicsApi.API.DestroyVec3(linearVelocityVec3Ptr);
-            PhysicsApi.API.DestroyVec3(angularVelocityVec3Ptr);
-            PhysicsApi.API.DestroyVec3(posVec3Ptr);
-            PhysicsApi.API.DestroyVec4(rotVec4Ptr);
+            Id = PhysicsApi.API.GetRigidBodyId(ptr);
+            CurrentPhysicsWorld.AddBody(Id, this);
 
             nextCreateForce = false;
         }
@@ -419,7 +438,7 @@ namespace PhyicsRT
             ReleaseShapeBody();
 
             CurrentPhysicsWorld.RemoveBody(this);
-            PhysicsApi.API.DestroyRigdBody(ptr);
+            PhysicsApi.API.DestroyRigidBody(ptr);
             ptr = IntPtr.Zero;
         }
     
@@ -432,6 +451,8 @@ namespace PhyicsRT
         private float oldFriction =  0;
         private float oldRestitution = 0;
         private int oldLayer = 0;
+        private Vector3 oldPosition = Vector3.zero;
+        private Quaternion oldRotation = Quaternion.identity;
 
         public void BackUpRuntimeCanModifieProperties() {
             oldMotionType = m_MotionType;
@@ -443,6 +464,8 @@ namespace PhyicsRT
             oldFriction = m_Friction;
             oldRestitution = m_Restitution;
             oldLayer = m_Layer;
+            oldPosition = transform.position;
+            oldRotation = transform.rotation;
         }
         public void ApplyModifiedProperties() {
             if(oldMotionType != m_MotionType) {
@@ -481,18 +504,128 @@ namespace PhyicsRT
                 var newVal = m_Layer; m_Layer = oldLayer;
                 Layer = newVal;
             }
-       
+            if(oldRotation != transform.rotation)
+                UpdateTransformToPhysicsEngine();
+            else if(oldPosition != transform.position)
+                UpdatePositionToPhysicsEngine();
         }
+        /// <summary>
+        /// 同步位置和旋转至物理引擎
+        /// </summary>
         public void UpdateTransformToPhysicsEngine() {
-             if(ptr != IntPtr.Zero){         
-                IntPtr posVec3Ptr = PhysicsApi.API.CreateVec3(transform.position.x, transform.position.y, transform.position.z);
-                IntPtr rotVec4Ptr = PhysicsApi.API.CreateVec4(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
+             if(ptr != IntPtr.Zero)
+                PhysicsApi.API.SetRigidBodyPositionAndRotation(ptr, transform.position, transform.rotation);
+        }
+        /// <summary>
+        /// 同步位置
+        /// </summary>
+        public void UpdatePositionToPhysicsEngine() {
+             if(ptr != IntPtr.Zero)
+                PhysicsApi.API.SetRigidBodyPosition(ptr, transform.position);
+        }
 
-                PhysicsApi.API.SetRigdBodyPositionAndRotation(ptr, posVec3Ptr, rotVec4Ptr);
-                
-                PhysicsApi.API.DestroyVec3(posVec3Ptr);
-                PhysicsApi.API.DestroyVec4(rotVec4Ptr);
+        /// <summary>
+        /// The velocity of the rigidbody at the point worldPoint in global space.
+        /// </summary>
+        /// <param name="worldPoint"></param>
+        /// <returns></returns>
+        public Vector3 GetPointVelocity(Vector3 worldPoint) {
+            if(ptr == IntPtr.Zero) throw new PhysicsBodyNotCreateException();
+            
+            PhysicsApi.API.GetRigidBodyPointVelocity(ptr, worldPoint, out var v);
+            return v;
+        }
+        /// <summary>
+        /// The velocity relative to the rigidbody at the point relativePoint.
+        /// </summary>
+        /// <param name="relativePoint"></param>
+        /// <returns></returns>
+        public Vector3 GetRelativePointVelocity(Vector3 relativePoint) {
+            return GetPointVelocity(transform.position + relativePoint);
+        }
+        /// <summary>
+        /// 获取或设置刚体角速度
+        /// </summary>
+        /// <value></value>
+        public Vector3 AngularVelocity {
+            get {
+                if(ptr == IntPtr.Zero)
+                    return InitialAngularVelocity;
+                else {
+                    PhysicsApi.API.GetRigidBodyAngularVelocity(ptr, out var v);
+                    return v;
+                }
+            }
+            set {
+                if(ptr == IntPtr.Zero) throw new PhysicsBodyNotCreateException();
+                PhysicsApi.API.SetRigidBodyAngularVelocity(ptr, value);
             }
         }
+        /// <summary>
+        /// 获取或设置刚体线速度
+        /// </summary>
+        /// <value></value>
+        public Vector3 LinearVelocity {
+            get {
+                if(ptr == IntPtr.Zero)
+                    return InitialLinearVelocity;
+                else {
+                    PhysicsApi.API.GetRigidBodyLinearVelocity(ptr, out var v);
+                    return v;
+                }
+            }
+            set {
+                if(ptr == IntPtr.Zero) throw new PhysicsBodyNotCreateException();
+                PhysicsApi.API.SetRigidBodyLinearVelocity(ptr, value);
+            }
+        }
+        /// <summary>
+        /// The maximum angular velocity of the body (in rad/s).
+        /// </summary>
+        /// <value></value>
+        public float MaxAngularVelocity {
+            get => m_MaxAngularVelocity;
+            set {
+                if(ptr == IntPtr.Zero) throw new PhysicsBodyNotCreateException();
+                m_MaxAngularVelocity = value;
+                PhysicsApi.API.SetRigidBodyMaxAngularVelocity(ptr, value);
+            }
+        }
+        /// <summary>
+        /// The maximum linear velocity of the body (in rad/s).
+        /// </summary>
+        /// <value></value>
+        public float MaxLinearVelocity {
+            get => m_MaxLinearVelocity;
+            set {
+                if(ptr == IntPtr.Zero) throw new PhysicsBodyNotCreateException();
+                m_MaxLinearVelocity = value;
+                PhysicsApi.API.SetRigidBodyMaxLinearVelocity(ptr, value);
+            }
+        }
+    
+        public void ApplyForce(IntPtr body, Vector3 force) {
+            if(ptr != IntPtr.Zero)
+                PhysicsApi.API.RigidBodyApplyForce(ptr, Time.deltaTime, force);
+        }
+        public void ApplyForceAtPoint(IntPtr body, Vector3 force, Vector3 point) {
+            if(ptr != IntPtr.Zero)
+                PhysicsApi.API.RigidBodyApplyForceAtPoint(ptr, Time.deltaTime, force, point);
+        }
+        public void ApplyTorque(IntPtr body, Vector3 torque) {
+            if(ptr != IntPtr.Zero)
+                PhysicsApi.API.RigidBodyApplyTorque(ptr, Time.deltaTime, torque);
+        }
+        public void ApplyLinearImpulse(IntPtr body, Vector3 imp) {
+            if(ptr != IntPtr.Zero)
+                PhysicsApi.API.RigidBodyApplyLinearImpulse(ptr, imp);
+        }
+        public void ApplyPointImpulse(IntPtr body, Vector3 imp, Vector3 point) {
+            if(ptr != IntPtr.Zero)
+                PhysicsApi.API.RigidBodyApplyPointImpulse(ptr, imp, point);
+        }
+    }
+    public class PhysicsBodyNotCreateException : Exception {
+        public PhysicsBodyNotCreateException() : base("Body is not created yet.") {}
     }
 }

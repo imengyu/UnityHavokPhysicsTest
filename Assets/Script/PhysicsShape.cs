@@ -115,9 +115,7 @@ namespace PhyicsRT
             {
                 case ShapeType.Box:
                     {
-                        IntPtr sizePtr = PhysicsApi.API.CreateVec3(ShapeSize.x, ShapeSize.y, ShapeSize.z);
-                        result = PhysicsApi.API.ComputeBoxVolumeMassProperties(sizePtr, mass);
-                        PhysicsApi.API.DestroyVec3(sizePtr);
+                        result = PhysicsApi.API.ComputeBoxVolumeMassProperties(ShapeSize, mass);
                         break;
                     }
                 case ShapeType.Sphere:
@@ -127,27 +125,17 @@ namespace PhyicsRT
                     }
                 case ShapeType.Capsule:
                     {
-                        IntPtr posPtrStart = PhysicsApi.API.CreateVec3(0, ShapeHeight / 2, 0);
-                        IntPtr posPtrEnd = PhysicsApi.API.CreateVec3(0, -ShapeHeight / 2, 0);
-                        result = PhysicsApi.API.ComputeCapsuleVolumeMassProperties(posPtrStart, posPtrEnd, ShapeRadius, mass);
-                        PhysicsApi.API.DestroyVec3(posPtrEnd);
-                        PhysicsApi.API.DestroyVec3(posPtrStart);
+                        result = PhysicsApi.API.ComputeCapsuleVolumeMassProperties(new Vector3(0, ShapeHeight / 2, 0), new Vector3(0, -ShapeHeight / 2, 0), ShapeRadius, mass);
                         break;
                     }
                 case ShapeType.Cylinder:
                     {
-                        IntPtr posPtrStart = PhysicsApi.API.CreateVec3(0, ShapeHeight / 2, 0);
-                        IntPtr posPtrEnd = PhysicsApi.API.CreateVec3(0, -ShapeHeight / 2, 0);
-                        result = PhysicsApi.API.ComputeCylinderVolumeMassProperties(posPtrStart, posPtrEnd, ShapeRadius, mass);
-                        PhysicsApi.API.DestroyVec3(posPtrEnd);
-                        PhysicsApi.API.DestroyVec3(posPtrStart);
+                        result = PhysicsApi.API.ComputeCylinderVolumeMassProperties(new Vector3(0, ShapeHeight / 2, 0), new Vector3(0, -ShapeHeight / 2, 0), ShapeRadius, mass);
                         break;
                     }
                 case ShapeType.Plane:
                     {
-                        IntPtr sizePtr = PhysicsApi.API.CreateVec3(ShapeSize.x, 0, ShapeSize.z);
-                        result = PhysicsApi.API.ComputeBoxVolumeMassProperties(sizePtr, mass);
-                        PhysicsApi.API.DestroyVec3(sizePtr);
+                        result = PhysicsApi.API.ComputeBoxVolumeMassProperties(new Vector3(ShapeSize.x, 0, ShapeSize.z), mass);
                         break;
                     }
                 case ShapeType.ConvexHull:
@@ -178,34 +166,22 @@ namespace PhyicsRT
             {
                 case ShapeType.Box:
                     {
-                        IntPtr sizePtr = PhysicsApi.API.CreateVec3(ShapeSize.x / 2, ShapeSize.y / 2, ShapeSize.z / 2);
-                        shapeRealPtr = PhysicsApi.API.CreateBoxShape(sizePtr, ShapeConvexRadius);
-                        PhysicsApi.API.DestroyVec3(sizePtr);
+                        shapeRealPtr = PhysicsApi.API.CreateBoxShape(new Vector3(ShapeSize.x / 2, ShapeSize.y / 2, ShapeSize.z / 2), ShapeConvexRadius);
                         break;
                     }
                 case ShapeType.Plane:
                     {
-                        IntPtr sizePtr = PhysicsApi.API.CreateVec3(ShapeSize.x / 2, 0.01f, ShapeSize.z / 2);
-                        shapeRealPtr = PhysicsApi.API.CreateBoxShape(sizePtr, ShapeConvexRadius);
-                        PhysicsApi.API.DestroyVec3(sizePtr);
+                        shapeRealPtr = PhysicsApi.API.CreateBoxShape(new Vector3(ShapeSize.x / 2, 0.01f, ShapeSize.z / 2), ShapeConvexRadius);
                         break;
                     }
                 case ShapeType.Capsule:
                     {
-                        IntPtr posPtrStart = PhysicsApi.API.CreateVec3(0, ShapeHeight / 2, 0);
-                        IntPtr posPtrEnd = PhysicsApi.API.CreateVec3(0, -ShapeHeight / 2, 0);
-                        shapeRealPtr = PhysicsApi.API.CreateCapsuleShape(posPtrStart, posPtrEnd, ShapeRadius);
-                        PhysicsApi.API.DestroyVec3(posPtrEnd);
-                        PhysicsApi.API.DestroyVec3(posPtrStart);
+                        shapeRealPtr = PhysicsApi.API.CreateCapsuleShape(new Vector3(0, ShapeHeight / 2, 0), new Vector3(0, -ShapeHeight / 2, 0), ShapeRadius);
                         break;
                     }
                 case ShapeType.Cylinder:
                     {
-                        IntPtr posPtrStart = PhysicsApi.API.CreateVec3(0, ShapeHeight / 2, 0);
-                        IntPtr posPtrEnd = PhysicsApi.API.CreateVec3(0, -ShapeHeight / 2, 0);
-                        shapeRealPtr = PhysicsApi.API.CreateCylindeShape(posPtrStart, posPtrEnd, ShapeRadius, ShapeConvexRadius);
-                        PhysicsApi.API.DestroyVec3(posPtrEnd);
-                        PhysicsApi.API.DestroyVec3(posPtrStart);
+                        shapeRealPtr = PhysicsApi.API.CreateCylindeShape(new Vector3(0, ShapeHeight / 2, 0), new Vector3(0, -ShapeHeight / 2, 0), ShapeRadius, ShapeConvexRadius);
                         break;
                     }
                 case ShapeType.Sphere:
@@ -236,8 +212,6 @@ namespace PhyicsRT
 
                         IntPtr convexHullResult = PhysicsApi.API.Build3DPointsConvexHull(verticesBuffer, mesh.vertices.Length);
                         shapeRealPtr = PhysicsApi.API.CreateConvexVerticesShapeByConvexHullResult(convexHullResult, ShapeConvexRadius);
-
-                        Debug.Log("shapeRealPtr: " + shapeRealPtr);
 
                         Marshal.FreeHGlobal(verticesBuffer);
                         PhysicsApi.API.CommonDelete(convexHullResult);
@@ -325,9 +299,7 @@ namespace PhyicsRT
                     }
                 case ShapeWrap.TranslateShape:
                     {
-                        IntPtr posPtr = PhysicsApi.API.CreateVec3(ShapeTranslation.x, ShapeTranslation.y, ShapeTranslation.z);
-                        ptr = PhysicsApi.API.CreateConvexTranslateShape(shapeRealPtr, posPtr);
-                        PhysicsApi.API.DestroyVec3(posPtr);
+                        ptr = PhysicsApi.API.CreateConvexTranslateShape(shapeRealPtr, ShapeTranslation);
                         break;
                     }
             }
@@ -423,6 +395,11 @@ namespace PhyicsRT
             }
         }
 
+        /// <summary>
+        /// 设置 StaticCompound 子shape的启用状态
+        /// </summary>
+        /// <param name="id">Id，存储在Shape的StaticCompoundChildId字段</param>
+        /// <param name="enable">是否启用</param>
         public void SetChildInstanceEnable(int id, bool enable)
         {
             if(m_ShapeType != ShapeType.StaticCompound)
@@ -431,8 +408,13 @@ namespace PhyicsRT
                 return;
             }
 
-            PhysicsApi.API.StaticCompoundShapeSetInstanceEnabled(shapeRealPtr, id, enable ? 1 : 0);
+            PhysicsApi.API.StaticCompoundShapeSetInstanceEnabled(shapeRealPtr, id, PhysicsApi.API.BoolToInt(enable));
         }
+        /// <summary>
+        /// 获取 StaticCompound 子shape的启用状态
+        /// </summary>
+        /// <param name="id">Id，存储在Shape的StaticCompoundChildId字段</param>
+        /// <returns></returns>
         public bool GetChildInstanceEnable(int id)
         {
             if (m_ShapeType != ShapeType.StaticCompound)
@@ -442,6 +424,9 @@ namespace PhyicsRT
             }
             return PhysicsApi.API.StaticCompoundShapeIsInstanceEnabled(shapeRealPtr, id) > 0;
         }
+        /// <summary>
+        /// 启用 StaticCompound 的所有子shape
+        /// </summary>
         public void EnableAllChildInstance()
         {
             if (m_ShapeType != ShapeType.StaticCompound)
@@ -453,4 +438,5 @@ namespace PhyicsRT
             PhysicsApi.API.StaticCompoundShapeEnableAllInstancesAndShapeKeys(shapeRealPtr);
         }
     }
+
 }

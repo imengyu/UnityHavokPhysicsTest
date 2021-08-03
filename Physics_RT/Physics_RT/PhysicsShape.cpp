@@ -250,9 +250,6 @@ sConvexHullResult* Build3DPointsConvexHull(float* points, int numPoints) {
 	TRY_BEGIN
 	CHECK_PARAM_PTR(points);
 
-	if (numPoints >= 8192) 
-		throw std::exception("Build3DPointsConvexHull: Too much panels: more than 8192");
-
 	// generate a convex geometry
 	hkArray<hkVector4> hkPoints;
 	for (int i = 0; i < numPoints; i++)
@@ -294,9 +291,6 @@ sConvexHullResult* Build3DFromPlaneConvexHull(float* panels, int numPanels) {
 
 	TRY_BEGIN
 	CHECK_PARAM_PTR(panels);
-
-	if (numPanels >= 8192)
-		throw std::exception("Build3DPointsConvexHull: Too much panels: more than 8192");
 
 	// generate a convex geometry
 	hkArray<hkVector4> hkPanels;

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -24,40 +25,38 @@ namespace PhyicsRT
   public delegate void fnDestroyTransform(IntPtr ptr);
 
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate IntPtr fnCreateRigdBody(
+  public delegate IntPtr fnCreateRigidBody(
       IntPtr world,
       IntPtr shape, IntPtr position, IntPtr rot,
       int motionType, int qualityType, float friction, float restitution, float mass, int active, int layer,
-      float gravityFactor, float linearDamping, float angularDamping,
-      IntPtr linearVelocity,
-      IntPtr angularVelocity,
-      IntPtr massProperties);
+      float gravityFactor, float linearDamping, float angularDamping, IntPtr centerOfMass, IntPtr inertiaTensor,
+      IntPtr linearVelocity, IntPtr angularVelocity, float maxLinearVelocity, float maxAngularVelocity, IntPtr massProperties);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnActiveRigdBody(IntPtr body);
+  public delegate void fnActiveRigidBody(IntPtr body);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnDeactiveRigdBody(IntPtr body);
+  public delegate void fnDeactiveRigidBody(IntPtr body);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnSetRigdBodyMass(IntPtr body, float mass);
+  public delegate void fnSetRigidBodyMass(IntPtr body, float mass);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnSetRigdBodyFriction(IntPtr body, float friction);
+  public delegate void fnSetRigidBodyFriction(IntPtr body, float friction);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnSetRigdBodyRestitution(IntPtr body, float restitution);
+  public delegate void fnSetRigidBodyRestitution(IntPtr body, float restitution);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnSetRigdBodyAngularDamping(IntPtr body, float angularDamping);
+  public delegate void fnSetRigidBodyAngularDamping(IntPtr body, float angularDamping);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnSetRigdBodyLinearDampin(IntPtr body, float linearDamping);
+  public delegate void fnSetRigidBodyLinearDampin(IntPtr body, float linearDamping);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnSetRigdBodyCenterOfMass(IntPtr body, IntPtr centerOfMass);
+  public delegate void fnSetRigidBodyCenterOfMass(IntPtr body, IntPtr centerOfMass);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnSetRigdBodyPosition(IntPtr body, IntPtr pos);
+  public delegate void fnSetRigidBodyPosition(IntPtr body, IntPtr pos);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnSetRigdBodyPositionAndRotation(IntPtr body, IntPtr pos, IntPtr roate);
+  public delegate void fnSetRigidBodyPositionAndRotation(IntPtr body, IntPtr pos, IntPtr roate);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnSetRigdBodyMotionType(IntPtr body, int newState);
+  public delegate void fnSetRigidBodyMotionType(IntPtr body, int newState);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnDestroyRigdBody(IntPtr body);
+  public delegate void fnDestroyRigidBody(IntPtr body);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnSetRigdBodyGravityFactor(IntPtr body, float gravityFactor);
+  public delegate void fnSetRigidBodyGravityFactor(IntPtr body, float gravityFactor);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate void fnGetConvexHullResultTriangles(IntPtr result, IntPtr trianglesBuffer, int count);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -115,7 +114,8 @@ namespace PhyicsRT
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate IntPtr fnCreatePhysicsWorld(IntPtr gravity,
       int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance,
-      bool bContinuous, bool bVisualDebugger, uint layerMask, IntPtr layerToMask);
+      bool bContinuous, bool bVisualDebugger, uint layerMask, IntPtr layerToMask,
+      IntPtr onConstraintBreakingCallback, IntPtr onBodyTriggerEnterCallback, IntPtr onBodyTriggerLeaveCallback);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate void fnDestroyPhysicsWorld(IntPtr world);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -127,7 +127,99 @@ namespace PhyicsRT
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate void fnSetPhysicsWorldCollisionLayerMasks(IntPtr world, uint layerId, uint toMask, int enable, int forceUpdate);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnSetRigdBodyLayer(IntPtr body, int layer);
+  public delegate void fnSetRigidBodyLayer(IntPtr body, int layer);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate IntPtr fnCreateMatrix4(IntPtr r, int isMatrix4);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnDestroyMatrix4(IntPtr r);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnSetRigidBodyLinearVelocity(IntPtr body, IntPtr v);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnSetRigidBodyAngularVelocity(IntPtr body, IntPtr v);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnGetRigidBodyPosition(IntPtr body, IntPtr outPos);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnGetRigidBodyRotation(IntPtr body, IntPtr outRot);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnGetRigidBodyAngularVelocity(IntPtr body, IntPtr outPos);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnGetRigidBodyLinearVelocity(IntPtr body, IntPtr outPos);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnGetRigidBodyCenterOfMassInWorld(IntPtr body, IntPtr outPos);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnGetRigidBodyPointVelocity(IntPtr body, IntPtr pt, IntPtr outPos);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnRigidBodyResetCenterOfMass(IntPtr body);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnRigidBodyResetInertiaTensor(IntPtr body);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnSetRigidBodyInertiaTensor(IntPtr body, IntPtr inertiaTensor);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnSetRigidBodyMaxLinearVelocity(IntPtr body, float v);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnSetRigidBodyMaxAngularVelocity(IntPtr body, float v);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnDestoryConstraints(IntPtr constraints);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate IntPtr fnCreateBallAndSocketConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate IntPtr fnCreateFixedConstraint(IntPtr body, IntPtr otherBody, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate IntPtr fnCreateStiffSpringConstraint(IntPtr body, IntPtr otherBody, IntPtr povitAW, IntPtr povitBW, float springMin, float springMax, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate IntPtr fnCreateHingeConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, IntPtr axis, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate IntPtr fnCreateLimitedHingeConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, IntPtr axis, float agularLimitMin, float agularLimitMax, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate IntPtr fnCreateWheelConstraint(IntPtr wheelRigidBody, IntPtr chassis, IntPtr axle, IntPtr suspension, IntPtr steering, float suspensionLimitMin, float suspensionLimitMax, float suspensionStrength, float suspensionDamping, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate IntPtr fnCreatePulleyConstraint(IntPtr body, IntPtr otherBody, IntPtr bodyPivot0, IntPtr bodyPivots1, IntPtr worldPivots0, IntPtr worldPivots1, float leverageRatio, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate IntPtr fnCreatePrismaticConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, IntPtr axis, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate IntPtr fnCreateCogWheelConstraint(IntPtr body, IntPtr otherBody, IntPtr rotationPivotA, IntPtr rotationAxisA, float radiusA, IntPtr rotationPivotB, IntPtr rotationAxisB, float radiusB, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnRigidBodyApplyForce(IntPtr body, float delteTime, IntPtr force);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnRigidBodyApplyForceAtPoint(IntPtr body, float delteTime, IntPtr force, IntPtr point);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnRigidBodyApplyTorque(IntPtr body, float delteTime, IntPtr torque);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnRigidBodyApplyAngularImpulse(IntPtr body, IntPtr imp);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnRigidBodyApplyLinearImpulse(IntPtr body, IntPtr imp);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnRigidBodyApplyPointImpulse(IntPtr body, IntPtr imp, IntPtr point);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate int fnIsConstraintBroken(IntPtr constraint);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnSetConstraintBroken(IntPtr constraint, bool broken, float force);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate int fnGetRigidBodyId(IntPtr body);
+
+  
+  /// Return Type: void
+  ///constraint: sPhysicsConstraints*
+  ///forceMagnitude: float
+  ///removed: int
+  [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
+  public delegate void fnOnConstraintBreakingCallback(IntPtr constraint, float forceMagnitude, int removed);
+
+  /// Return Type: void
+  ///body: sPhysicsRigidbody*
+  ///bodyOther: sPhysicsRigidbody*
+  ///id: int
+  ///otherId: int
+  [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
+  public delegate void fnOnBodyTriggerEnterCallback(IntPtr body, IntPtr bodyOther, int id, int otherId);
+
+  /// Return Type: void
+  ///body: sPhysicsRigidbody*
+  ///bodyOther: sPhysicsRigidbody*
+  ///id: int
+  ///otherId: int
+  [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
+  public delegate void fnOnBodyTriggerLeaveCallback(IntPtr body, IntPtr bodyOther, int id, int otherId);
 
   #endregion
 
@@ -165,24 +257,24 @@ namespace PhyicsRT
       _StepPhysicsWorld = Marshal.GetDelegateForFunctionPointer<fnStepPhysicsWorld>(apiArray[i++]);
       _SetPhysicsWorldGravity = Marshal.GetDelegateForFunctionPointer<fnSetPhysicsWorldGravity>(apiArray[i++]);
       _ReadPhysicsWorldBodys = Marshal.GetDelegateForFunctionPointer<fnReadPhysicsWorldBodys>(apiArray[i++]);
-      _CreateRigdBody = Marshal.GetDelegateForFunctionPointer<fnCreateRigdBody>(apiArray[i++]);
-      _ActiveRigdBody = Marshal.GetDelegateForFunctionPointer<fnActiveRigdBody>(apiArray[i++]);
-      _DeactiveRigdBody = Marshal.GetDelegateForFunctionPointer<fnDeactiveRigdBody>(apiArray[i++]);
-      _SetRigdBodyMass = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyMass>(apiArray[i++]);
-      _SetRigdBodyFriction = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyFriction>(apiArray[i++]);
-      _SetRigdBodyRestitution = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyRestitution>(apiArray[i++]);
-      _SetRigdBodyCenterOfMass = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyCenterOfMass>(apiArray[i++]);
-      _SetRigdBodyPosition = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyPosition>(apiArray[i++]);
-      _SetRigdBodyPositionAndRotation = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyPositionAndRotation>(apiArray[i++]);
-      _SetRigdBodyAngularDamping = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyAngularDamping>(apiArray[i++]);
-      _SetRigdBodyLinearDampin = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyLinearDampin>(apiArray[i++]);
-      _SetRigdBodyMotionType = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyMotionType>(apiArray[i++]);
-      _SetRigdBodyGravityFactor = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyGravityFactor>(apiArray[i++]);
+      _CreateRigidBody = Marshal.GetDelegateForFunctionPointer<fnCreateRigidBody>(apiArray[i++]);
+      _ActiveRigidBody = Marshal.GetDelegateForFunctionPointer<fnActiveRigidBody>(apiArray[i++]);
+      _DeactiveRigidBody = Marshal.GetDelegateForFunctionPointer<fnDeactiveRigidBody>(apiArray[i++]);
+      _SetRigidBodyMass = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyMass>(apiArray[i++]);
+      _SetRigidBodyFriction = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyFriction>(apiArray[i++]);
+      _SetRigidBodyRestitution = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyRestitution>(apiArray[i++]);
+      _SetRigidBodyCenterOfMass = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyCenterOfMass>(apiArray[i++]);
+      _SetRigidBodyPosition = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyPosition>(apiArray[i++]);
+      _SetRigidBodyPositionAndRotation = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyPositionAndRotation>(apiArray[i++]);
+      _SetRigidBodyAngularDamping = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyAngularDamping>(apiArray[i++]);
+      _SetRigidBodyLinearDampin = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyLinearDampin>(apiArray[i++]);
+      _SetRigidBodyMotionType = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyMotionType>(apiArray[i++]);
+      _SetRigidBodyGravityFactor = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyGravityFactor>(apiArray[i++]);
       _GetConvexHullResultTriangles = Marshal.GetDelegateForFunctionPointer<fnGetConvexHullResultTriangles>(apiArray[i++]);
       _GetConvexHullResultVertices = Marshal.GetDelegateForFunctionPointer<fnGetConvexHullResultVertices>(apiArray[i++]);
       _Build3DPointsConvexHull = Marshal.GetDelegateForFunctionPointer<fnBuild3DPointsConvexHull>(apiArray[i++]);
       _Build3DFromPlaneConvexHull = Marshal.GetDelegateForFunctionPointer<fnBuild3DFromPlaneConvexHull>(apiArray[i++]);
-      _DestroyRigdBody = Marshal.GetDelegateForFunctionPointer<fnDestroyRigdBody>(apiArray[i++]);
+      _DestroyRigidBody = Marshal.GetDelegateForFunctionPointer<fnDestroyRigidBody>(apiArray[i++]);
       _ComputeShapeVolumeMassProperties = Marshal.GetDelegateForFunctionPointer<fnComputeShapeVolumeMassProperties>(apiArray[i++]);
       _ComputeBoxSurfaceMassProperties = Marshal.GetDelegateForFunctionPointer<fnComputeBoxSurfaceMassProperties>(apiArray[i++]);
       _ComputeBoxVolumeMassProperties = Marshal.GetDelegateForFunctionPointer<fnComputeBoxVolumeMassProperties>(apiArray[i++]);
@@ -207,8 +299,43 @@ namespace PhyicsRT
       _StaticCompoundShapeEnableAllInstancesAndShapeKeys = Marshal.GetDelegateForFunctionPointer<fnStaticCompoundShapeEnableAllInstancesAndShapeKeys>(apiArray[i++]);
       _DestroyShape = Marshal.GetDelegateForFunctionPointer<fnDestroyShape>(apiArray[i++]);
 	    _TestAssert = Marshal.GetDelegateForFunctionPointer<fnTestAssert>(apiArray[i++]);
-	    _SetRigdBodyLayer = Marshal.GetDelegateForFunctionPointer<fnSetRigdBodyLayer>(apiArray[i++]);
+	    _SetRigidBodyLayer = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyLayer>(apiArray[i++]);
 	    _SetPhysicsWorldCollisionLayerMasks = Marshal.GetDelegateForFunctionPointer<fnSetPhysicsWorldCollisionLayerMasks>(apiArray[i++]);
+      _CreateMatrix4 = Marshal.GetDelegateForFunctionPointer<fnCreateMatrix4>(apiArray[i++]);
+      _DestroyMatrix4 = Marshal.GetDelegateForFunctionPointer<fnDestroyMatrix4>(apiArray[i++]);
+      _SetRigidBodyLinearVelocity = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyLinearVelocity>(apiArray[i++]);
+      _SetRigidBodyAngularVelocity = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyAngularVelocity>(apiArray[i++]);
+      _SetRigidBodyInertiaTensor = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyInertiaTensor>(apiArray[i++]);
+      _GetRigidBodyPosition = Marshal.GetDelegateForFunctionPointer<fnGetRigidBodyPosition>(apiArray[i++]);
+      _GetRigidBodyRotation = Marshal.GetDelegateForFunctionPointer<fnGetRigidBodyRotation>(apiArray[i++]);
+      _GetRigidBodyAngularVelocity = Marshal.GetDelegateForFunctionPointer<fnGetRigidBodyAngularVelocity>(apiArray[i++]);
+      _GetRigidBodyLinearVelocity = Marshal.GetDelegateForFunctionPointer<fnGetRigidBodyLinearVelocity>(apiArray[i++]);
+      _GetRigidBodyCenterOfMassInWorld = Marshal.GetDelegateForFunctionPointer<fnGetRigidBodyCenterOfMassInWorld>(apiArray[i++]);
+      _GetRigidBodyPointVelocity = Marshal.GetDelegateForFunctionPointer<fnGetRigidBodyPointVelocity>(apiArray[i++]);
+      _RigidBodyResetCenterOfMass = Marshal.GetDelegateForFunctionPointer<fnRigidBodyResetCenterOfMass>(apiArray[i++]);
+      _RigidBodyResetInertiaTensor = Marshal.GetDelegateForFunctionPointer<fnRigidBodyResetInertiaTensor>(apiArray[i++]);
+      _SetRigidBodyMaxLinearVelocity = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyMaxLinearVelocity>(apiArray[i++]);
+      _SetRigidBodyMaxAngularVelocity = Marshal.GetDelegateForFunctionPointer<fnSetRigidBodyMaxAngularVelocity>(apiArray[i++]);
+      _DestoryConstraints = Marshal.GetDelegateForFunctionPointer<fnDestoryConstraints>(apiArray[i++]);
+      _CreateBallAndSocketConstraint = Marshal.GetDelegateForFunctionPointer<fnCreateBallAndSocketConstraint>(apiArray[i++]);
+      _CreateFixedConstraint = Marshal.GetDelegateForFunctionPointer<fnCreateFixedConstraint>(apiArray[i++]);
+      _CreateStiffSpringConstraint = Marshal.GetDelegateForFunctionPointer<fnCreateStiffSpringConstraint>(apiArray[i++]);
+      _CreateHingeConstraint = Marshal.GetDelegateForFunctionPointer<fnCreateHingeConstraint>(apiArray[i++]);
+      _CreateLimitedHingeConstraint = Marshal.GetDelegateForFunctionPointer<fnCreateLimitedHingeConstraint>(apiArray[i++]);
+      _CreateWheelConstraint = Marshal.GetDelegateForFunctionPointer<fnCreateWheelConstraint>(apiArray[i++]);
+      _CreatePulleyConstraint = Marshal.GetDelegateForFunctionPointer<fnCreatePulleyConstraint>(apiArray[i++]);
+      _CreatePrismaticConstraint = Marshal.GetDelegateForFunctionPointer<fnCreatePrismaticConstraint>(apiArray[i++]);
+      _CreateCogWheelConstraint = Marshal.GetDelegateForFunctionPointer<fnCreateCogWheelConstraint>(apiArray[i++]);
+      _RigidBodyApplyForce = Marshal.GetDelegateForFunctionPointer<fnRigidBodyApplyForce>(apiArray[i++]);
+      _RigidBodyApplyForceAtPoint = Marshal.GetDelegateForFunctionPointer<fnRigidBodyApplyForceAtPoint>(apiArray[i++]);
+      _RigidBodyApplyTorque = Marshal.GetDelegateForFunctionPointer<fnRigidBodyApplyTorque>(apiArray[i++]);
+      _RigidBodyApplyAngularImpulse = Marshal.GetDelegateForFunctionPointer<fnRigidBodyApplyAngularImpulse>(apiArray[i++]);
+      _RigidBodyApplyLinearImpulse = Marshal.GetDelegateForFunctionPointer<fnRigidBodyApplyLinearImpulse>(apiArray[i++]);
+      _RigidBodyApplyPointImpulse = Marshal.GetDelegateForFunctionPointer<fnRigidBodyApplyPointImpulse>(apiArray[i++]);
+      _IsConstraintBroken = Marshal.GetDelegateForFunctionPointer<fnIsConstraintBroken>(apiArray[i++]);
+      _SetConstraintBroken = Marshal.GetDelegateForFunctionPointer<fnSetConstraintBroken>(apiArray[i++]);
+      _GetRigidBodyId = Marshal.GetDelegateForFunctionPointer<fnGetRigidBodyId>(apiArray[i++]);
+
     }
 
     private fnTestAssert _TestAssert;
@@ -224,24 +351,24 @@ namespace PhyicsRT
     private fnStepPhysicsWorld _StepPhysicsWorld;
     private fnSetPhysicsWorldGravity _SetPhysicsWorldGravity;
     private fnReadPhysicsWorldBodys _ReadPhysicsWorldBodys;
-    private fnCreateRigdBody _CreateRigdBody;
-    private fnActiveRigdBody _ActiveRigdBody;
-    private fnDeactiveRigdBody _DeactiveRigdBody;
-    private fnSetRigdBodyMass _SetRigdBodyMass;
-    private fnSetRigdBodyFriction _SetRigdBodyFriction;
-    private fnSetRigdBodyRestitution _SetRigdBodyRestitution;
-    private fnSetRigdBodyCenterOfMass _SetRigdBodyCenterOfMass;
-    private fnSetRigdBodyAngularDamping _SetRigdBodyAngularDamping;
-    private fnSetRigdBodyLinearDampin _SetRigdBodyLinearDampin;
-    private fnSetRigdBodyPosition _SetRigdBodyPosition;
-    private fnSetRigdBodyPositionAndRotation _SetRigdBodyPositionAndRotation;
-    private fnSetRigdBodyMotionType _SetRigdBodyMotionType;
-    private fnSetRigdBodyGravityFactor _SetRigdBodyGravityFactor;
+    private fnCreateRigidBody _CreateRigidBody;
+    private fnActiveRigidBody _ActiveRigidBody;
+    private fnDeactiveRigidBody _DeactiveRigidBody;
+    private fnSetRigidBodyMass _SetRigidBodyMass;
+    private fnSetRigidBodyFriction _SetRigidBodyFriction;
+    private fnSetRigidBodyRestitution _SetRigidBodyRestitution;
+    private fnSetRigidBodyCenterOfMass _SetRigidBodyCenterOfMass;
+    private fnSetRigidBodyAngularDamping _SetRigidBodyAngularDamping;
+    private fnSetRigidBodyLinearDampin _SetRigidBodyLinearDampin;
+    private fnSetRigidBodyPosition _SetRigidBodyPosition;
+    private fnSetRigidBodyPositionAndRotation _SetRigidBodyPositionAndRotation;
+    private fnSetRigidBodyMotionType _SetRigidBodyMotionType;
+    private fnSetRigidBodyGravityFactor _SetRigidBodyGravityFactor;
     private fnGetConvexHullResultTriangles _GetConvexHullResultTriangles;
     private fnGetConvexHullResultVertices _GetConvexHullResultVertices;
     private fnBuild3DPointsConvexHull _Build3DPointsConvexHull;
     private fnBuild3DFromPlaneConvexHull _Build3DFromPlaneConvexHull;
-    private fnDestroyRigdBody _DestroyRigdBody;
+    private fnDestroyRigidBody _DestroyRigidBody;
     private fnComputeShapeVolumeMassProperties _ComputeShapeVolumeMassProperties;
     private fnComputeBoxSurfaceMassProperties _ComputeBoxSurfaceMassProperties;
     private fnComputeBoxVolumeMassProperties _ComputeBoxVolumeMassProperties;
@@ -266,7 +393,520 @@ namespace PhyicsRT
     private fnStaticCompoundShapeEnableAllInstancesAndShapeKeys _StaticCompoundShapeEnableAllInstancesAndShapeKeys;
     private fnDestroyShape _DestroyShape;
     private fnSetPhysicsWorldCollisionLayerMasks _SetPhysicsWorldCollisionLayerMasks;
-    private fnSetRigdBodyLayer _SetRigdBodyLayer;
+    private fnSetRigidBodyLayer _SetRigidBodyLayer;
+    private fnCreateMatrix4 _CreateMatrix4;
+    private fnDestroyMatrix4 _DestroyMatrix4;
+    private fnSetRigidBodyLinearVelocity _SetRigidBodyLinearVelocity;
+    private fnSetRigidBodyAngularVelocity _SetRigidBodyAngularVelocity;
+    private fnGetRigidBodyPosition _GetRigidBodyPosition;
+    private fnGetRigidBodyRotation _GetRigidBodyRotation;
+    private fnGetRigidBodyAngularVelocity _GetRigidBodyAngularVelocity;
+    private fnGetRigidBodyLinearVelocity _GetRigidBodyLinearVelocity;
+    private fnGetRigidBodyCenterOfMassInWorld _GetRigidBodyCenterOfMassInWorld;
+    private fnGetRigidBodyPointVelocity _GetRigidBodyPointVelocity;
+    private fnRigidBodyResetCenterOfMass _RigidBodyResetCenterOfMass;
+    private fnRigidBodyResetInertiaTensor _RigidBodyResetInertiaTensor;
+    private fnSetRigidBodyInertiaTensor _SetRigidBodyInertiaTensor;
+    private fnSetRigidBodyMaxLinearVelocity _SetRigidBodyMaxLinearVelocity;
+    private fnSetRigidBodyMaxAngularVelocity _SetRigidBodyMaxAngularVelocity;
+    private fnDestoryConstraints _DestoryConstraints;
+    private fnCreateBallAndSocketConstraint _CreateBallAndSocketConstraint;
+    private fnCreateFixedConstraint _CreateFixedConstraint;
+    private fnCreateStiffSpringConstraint _CreateStiffSpringConstraint;
+    private fnCreateHingeConstraint _CreateHingeConstraint;
+    private fnCreateLimitedHingeConstraint _CreateLimitedHingeConstraint;
+    private fnCreateWheelConstraint _CreateWheelConstraint;
+    private fnCreatePulleyConstraint _CreatePulleyConstraint;
+    private fnCreatePrismaticConstraint _CreatePrismaticConstraint;
+    private fnCreateCogWheelConstraint _CreateCogWheelConstraint;
+    private fnRigidBodyApplyForce _RigidBodyApplyForce;
+    private fnRigidBodyApplyForceAtPoint _RigidBodyApplyForceAtPoint;
+    private fnRigidBodyApplyTorque _RigidBodyApplyTorque;
+    private fnRigidBodyApplyAngularImpulse _RigidBodyApplyAngularImpulse;
+    private fnRigidBodyApplyLinearImpulse _RigidBodyApplyLinearImpulse;
+    private fnRigidBodyApplyPointImpulse _RigidBodyApplyPointImpulse;
+    private fnIsConstraintBroken _IsConstraintBroken;
+    private fnSetConstraintBroken _SetConstraintBroken;
+    private fnGetRigidBodyId _GetRigidBodyId;
+
+    public int BoolToInt(bool a) {
+      return a ? 1 : 0;
+    }   
+    private IntPtr Matrix4x4ToNative9(Matrix4x4 a) {
+
+      IntPtr ptr = Marshal.AllocHGlobal(Marshal.SizeOf<float>() * 9);
+      float [] ar = new float[9];
+      int i = 0;
+      ar[i++] = a[0,0];
+      ar[i++] = a[0,1];
+      ar[i++] = a[0,2];
+      ar[i++] = a[1,0];
+      ar[i++] = a[1,1];
+      ar[i++] = a[1,2];
+      ar[i++] = a[2,0];
+      ar[i++] = a[2,1];
+      ar[i++] = a[2,2];
+
+      IntPtr mptr = _CreateMatrix4(ptr, 0);
+      Marshal.FreeHGlobal(ptr);
+      return mptr;
+    }
+    private IntPtr Matrix4x4ToNative16(Matrix4x4 a) {
+       IntPtr ptr = Marshal.AllocHGlobal(Marshal.SizeOf<float>() * 16);
+      float [] ar = new float[16];
+      int i = 0;
+      IntPtr mptr = _CreateMatrix4(ptr, 1);
+      
+      ar[i++] = a[0,0];
+      ar[i++] = a[0,1];
+      ar[i++] = a[0,2];
+      ar[i++] = a[0,3];
+      ar[i++] = a[1,0];
+      ar[i++] = a[1,1];
+      ar[i++] = a[1,2];
+      ar[i++] = a[1,3];
+      ar[i++] = a[2,0];
+      ar[i++] = a[2,1];
+      ar[i++] = a[2,2];
+      ar[i++] = a[2,3];
+      ar[i++] = a[3,0];
+      ar[i++] = a[3,1];
+      ar[i++] = a[3,2];
+      ar[i++] = a[3,3];
+
+      Marshal.FreeHGlobal(ptr);
+      return mptr;
+    }
+    private IntPtr Vector3ToNative3(Vector3 a) {
+      return _CreateVec3(a.x, a.y, a.z);
+    }
+    private IntPtr Vector4ToNative4(Vector4 a) {
+      return _CreateVec4(a.x, a.y, a.z, a.w);
+    }
+    private IntPtr QuaternionToNative4(Quaternion a) {
+      return _CreateVec4(a.x, a.y, a.z, a.w);
+    }
+    private IntPtr TransformToNative(Vector3 pos, Quaternion rot, Vector3 scale) {
+      return _CreateTransform(pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, rot.w, scale.x, scale.y, rot.z);
+    }
+    private void FreeNativeMatrix4x4(IntPtr a) {
+      _DestroyMatrix4(a);
+    }
+    private void FreeNativeVector3(IntPtr a) {
+      _DestroyVec3(a);
+    }
+    private void FreeNativeVector4(IntPtr a) {
+      _DestroyVec4(a);
+    }
+    private void FreeNativeTransform(IntPtr a) {
+      _DestroyTransform(a);
+    }
+
+    public void SetConstraintBroken(IntPtr constraint, bool broken, float force) {
+      if (_SetConstraintBroken == null)
+        throw new ApiNotFoundException("_SetConstraintBroken");
+
+      _SetConstraintBroken(constraint, broken, force);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void DestoryConstraints(IntPtr constraint) {
+      if (_DestoryConstraints == null)
+        throw new ApiNotFoundException("DestoryConstraints");
+
+      _DestoryConstraints(constraint);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public bool IsConstraintBroken(IntPtr constraint) {
+      if (_IsConstraintBroken == null)
+        throw new ApiNotFoundException("IsConstraintBroken");
+
+      var rs = _IsConstraintBroken(constraint) > 0;
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreateBallAndSocketConstraint(IntPtr body, IntPtr otherBody, Vector3 povit, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
+      if (_CreateBallAndSocketConstraint == null)
+        throw new ApiNotFoundException("CreateBallAndSocketConstraint");
+
+      var povitPtr = Vector3ToNative3(povit);
+      var rs = _CreateBallAndSocketConstraint(body, otherBody, povitPtr, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
+      FreeNativeVector3(povitPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreateFixedConstraint(IntPtr body, IntPtr otherBody, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
+      if (_CreateFixedConstraint == null)
+        throw new ApiNotFoundException("CreateFixedConstraint");
+
+      var rs = _CreateFixedConstraint(body, otherBody, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreateStiffSpringConstraint(IntPtr body, IntPtr otherBody, Vector3 povitAW, Vector3 povitBW, float springMin, float springMax, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
+      if (_CreateStiffSpringConstraint == null)
+        throw new ApiNotFoundException("CreateStiffSpringConstraint");
+
+      var povitAWPtr = Vector3ToNative3(povitAW);
+      var povitBWPtr = Vector3ToNative3(povitBW);
+      var rs = _CreateStiffSpringConstraint(body, otherBody, povitAWPtr, povitBWPtr, springMin, springMax, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
+      FreeNativeVector3(povitAWPtr);
+      FreeNativeVector3(povitBWPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreateHingeConstraint(IntPtr body, IntPtr otherBody, Vector3 povit, Vector3 axis, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
+      if (_CreateHingeConstraint == null)
+        throw new ApiNotFoundException("CreateHingeConstraint");
+
+      var povitPtr = Vector3ToNative3(povit);
+      var axisPtr = Vector3ToNative3(axis);
+      var rs = _CreateHingeConstraint(body, otherBody, povitPtr, axisPtr, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
+      FreeNativeVector3(povitPtr);
+      FreeNativeVector3(axisPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreateLimitedHingeConstraint(IntPtr body, IntPtr otherBody, Vector3 povit, Vector3 axis, float agularLimitMin, float agularLimitMax, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
+      if (_CreateLimitedHingeConstraint == null)
+        throw new ApiNotFoundException("CreateLimitedHingeConstraint");
+
+      var povitPtr = Vector3ToNative3(povit);
+      var axisPtr = Vector3ToNative3(povit);
+      var rs = _CreateLimitedHingeConstraint(body, otherBody, povitPtr, axisPtr, agularLimitMin, agularLimitMax, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
+      FreeNativeVector3(povitPtr);
+      FreeNativeVector3(axisPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreateWheelConstraint(IntPtr wheelRigidBody, IntPtr chassis, Vector3 axle, Vector3 suspension, Vector3 steering, float suspensionLimitMin, float suspensionLimitMax, float suspensionStrength, float suspensionDamping, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
+      if (_CreateWheelConstraint == null)
+        throw new ApiNotFoundException("CreateWheelConstraint");
+
+      var axlePtr = Vector3ToNative3(axle);
+      var suspensionPtr = Vector3ToNative3(suspension);
+      var steeringPtr = Vector3ToNative3(steering);
+      var rs = _CreateWheelConstraint(wheelRigidBody, chassis, axlePtr, suspensionPtr, steeringPtr, suspensionLimitMin, suspensionLimitMax, suspensionStrength, suspensionDamping, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
+      FreeNativeVector3(axlePtr);
+      FreeNativeVector3(suspensionPtr);
+      FreeNativeVector3(steeringPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreatePulleyConstraint(IntPtr body, IntPtr otherBody, Vector3 bodyPivot0, Vector3 bodyPivots1, Vector3 worldPivots0, Vector3 worldPivots1, float leverageRatio, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
+      if (_CreatePulleyConstraint == null)
+        throw new ApiNotFoundException("CreatePulleyConstraint");
+
+      var bodyPivot0Ptr = Vector3ToNative3(bodyPivot0);
+      var bodyPivots1Ptr = Vector3ToNative3(bodyPivots1);
+      var worldPivots0Ptr = Vector3ToNative3(worldPivots0);
+      var worldPivots1Ptr = Vector3ToNative3(worldPivots1);
+      var rs = _CreatePulleyConstraint(body, otherBody, bodyPivot0Ptr, bodyPivots1Ptr, worldPivots0Ptr, worldPivots1Ptr, leverageRatio, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
+      FreeNativeVector3(bodyPivot0Ptr);
+      FreeNativeVector3(bodyPivots1Ptr);
+      FreeNativeVector3(worldPivots0Ptr);
+      FreeNativeVector3(worldPivots1Ptr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreatePrismaticConstraint(IntPtr body, IntPtr otherBody, Vector3 povit, Vector3 axis, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
+      if (_CreatePrismaticConstraint == null)
+        throw new ApiNotFoundException("CreatePrismaticConstraint");
+
+      var povitPtr = Vector3ToNative3(povit);
+      var axisPtr = Vector3ToNative3(axis);
+      var rs = _CreatePrismaticConstraint(body, otherBody, povitPtr, axisPtr, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
+      FreeNativeVector3(povitPtr);
+      FreeNativeVector3(axisPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreateCogWheelConstraint(IntPtr body, IntPtr otherBody, Vector3 rotationPivotA, Vector3 rotationAxisA, float radiusA, Vector3 rotationPivotB, Vector3 rotationAxisB, float radiusB, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
+      if (_CreateCogWheelConstraint == null)
+        throw new ApiNotFoundException("CreateCogWheelConstraint");
+
+      var rotationPivotAPtr = Vector3ToNative3(rotationPivotA);
+      var rotationAxisAPtr = Vector3ToNative3(rotationAxisA);
+      var rotationPivotBPtr = Vector3ToNative3(rotationPivotB);
+      var rotationAxisBPtr = Vector3ToNative3(rotationAxisB);
+      var rs = _CreateCogWheelConstraint(body, otherBody, rotationPivotAPtr, rotationAxisAPtr, radiusA, rotationPivotBPtr, rotationAxisBPtr, radiusB, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
+      FreeNativeVector3(rotationPivotAPtr);
+      FreeNativeVector3(rotationAxisAPtr);
+      FreeNativeVector3(rotationPivotBPtr);
+      FreeNativeVector3(rotationAxisBPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+
+    public int GetRigidBodyId(IntPtr body) {
+      if (_GetRigidBodyId == null)
+        throw new ApiNotFoundException("GetRigidBodyId");
+
+      var rs = _GetRigidBodyId(body);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public void SetRigidBodyInertiaTensor(IntPtr body, Matrix4x4 inertiaTensor) {
+      if (_SetRigidBodyInertiaTensor == null)
+        throw new ApiNotFoundException("SetRigidBodyInertiaTensor");
+
+      IntPtr nPtr = Matrix4x4ToNative9(inertiaTensor);
+      _SetRigidBodyInertiaTensor(body, nPtr);
+      FreeNativeMatrix4x4(nPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void SetRigidBodyLinearVelocity(IntPtr body, Vector3 velocity) {
+      if (_SetRigidBodyLinearVelocity == null)
+        throw new ApiNotFoundException("_SetRigidBodyLinearVelocity");
+
+      IntPtr nVelocityPtr = Vector3ToNative3(velocity);
+      _SetRigidBodyLinearVelocity(body, nVelocityPtr);
+      FreeNativeVector3(nVelocityPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void SetRigidBodyAngularVelocity(IntPtr body, Vector3 velocity) {
+      if (_SetRigidBodyAngularVelocity == null)
+        throw new ApiNotFoundException("_SetRigidBodyAngularVelocity");
+
+      IntPtr nVelocityPtr = Vector3ToNative3(velocity);
+      _SetRigidBodyAngularVelocity(body, nVelocityPtr);
+      FreeNativeVector3(nVelocityPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void RigidBodyApplyForce(IntPtr body, float delteTime, Vector3 force) {
+      if (_RigidBodyApplyForce == null)
+        throw new ApiNotFoundException("RigidBodyApplyForce");
+
+      IntPtr forcePtr = Vector3ToNative3(force);
+      _RigidBodyApplyForce(body, delteTime, forcePtr);
+      FreeNativeVector3(forcePtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void RigidBodyApplyForceAtPoint(IntPtr body, float delteTime, Vector3 force, Vector3 point) {
+      if (_RigidBodyApplyForceAtPoint == null)
+        throw new ApiNotFoundException("RigidBodyApplyForceAtPoint");
+
+      IntPtr forcePtr = Vector3ToNative3(force);
+      IntPtr pointPtr = Vector3ToNative3(point);
+      _RigidBodyApplyForceAtPoint(body, delteTime, forcePtr, pointPtr);
+      FreeNativeVector3(forcePtr);
+      FreeNativeVector3(pointPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void RigidBodyApplyTorque(IntPtr body, float delteTime, Vector3 torque) {
+      if (_RigidBodyApplyTorque == null)
+        throw new ApiNotFoundException("RigidBodyApplyTorque");
+
+      IntPtr forcePtr = Vector3ToNative3(torque);
+      _RigidBodyApplyTorque(body, delteTime, forcePtr);
+      FreeNativeVector3(forcePtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void RigidBodyApplyAngularImpulse(IntPtr body, Vector3 imp) {
+      if (_RigidBodyApplyAngularImpulse == null)
+        throw new ApiNotFoundException("RigidBodyApplyAngularImpulse");
+
+      IntPtr forcePtr = Vector3ToNative3(imp);
+      _RigidBodyApplyAngularImpulse(body, forcePtr);
+      FreeNativeVector3(forcePtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void RigidBodyApplyLinearImpulse(IntPtr body, Vector3 imp) {
+      if (_RigidBodyApplyForce == null)
+        throw new ApiNotFoundException("RigidBodyApplyLinearImpulse");
+
+      IntPtr forcePtr = Vector3ToNative3(imp);
+      _RigidBodyApplyLinearImpulse(body, forcePtr);
+      FreeNativeVector3(forcePtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void RigidBodyApplyPointImpulse(IntPtr body, Vector3 imp, Vector3 point) {
+      if (_RigidBodyApplyPointImpulse == null)
+        throw new ApiNotFoundException("RigidBodyApplyPointImpulse");
+
+      IntPtr impPtr = Vector3ToNative3(imp);
+      IntPtr pointPtr = Vector3ToNative3(point);
+      _RigidBodyApplyPointImpulse(body, impPtr, pointPtr);
+      FreeNativeVector3(impPtr);
+      FreeNativeVector3(pointPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void GetRigidBodyPosition(IntPtr body, out Vector3 outPos) {
+      if (_GetRigidBodyPosition == null)
+        throw new ApiNotFoundException("GetRigidBodyPosition");
+      
+      IntPtr ptr = Vector3ToNative3(Vector3.zero);
+      _GetRigidBodyPosition(body, ptr);
+      outPos = sVec3.FromNativeToVector3(ptr);
+      FreeNativeVector3(ptr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void GetRigidBodyRotation(IntPtr body, out Vector4 outRot) {
+      if (_GetRigidBodyRotation == null)
+        throw new ApiNotFoundException("GetRigidBodyRotation");
+      
+      IntPtr ptr = Vector4ToNative4(Vector4.zero);
+      _GetRigidBodyRotation(body, ptr);
+      outRot = sVec4.FromNativeToVector4(ptr);
+      FreeNativeVector4(ptr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void GetRigidBodyAngularVelocity(IntPtr body, out Vector3 outVelocity) {
+      if (_GetRigidBodyAngularVelocity == null)
+        throw new ApiNotFoundException("GetRigidBodyAngularVelocity");
+      
+      IntPtr ptr = Vector3ToNative3(Vector3.zero);
+      _GetRigidBodyAngularVelocity(body, ptr);
+      outVelocity = sVec3.FromNativeToVector3(ptr);
+      FreeNativeVector3(ptr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void GetRigidBodyLinearVelocity(IntPtr body, out Vector3 outVelocity) {
+      if (_GetRigidBodyLinearVelocity == null)
+        throw new ApiNotFoundException("GetRigidBodyLinearVelocity");
+      
+      IntPtr ptr = Vector3ToNative3(Vector3.zero);
+      _GetRigidBodyLinearVelocity(body, ptr);
+      outVelocity = sVec3.FromNativeToVector3(ptr);
+      FreeNativeVector3(ptr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void GetRigidBodyCenterOfMassInWorld(IntPtr body, out Vector3 outCenterOfMassInWorld) {
+      if (_GetRigidBodyCenterOfMassInWorld == null)
+        throw new ApiNotFoundException("GetRigidBodyCenterOfMassInWorld");
+      
+      IntPtr ptr = Vector3ToNative3(Vector3.zero);
+      _GetRigidBodyCenterOfMassInWorld(body, ptr);
+      outCenterOfMassInWorld = sVec3.FromNativeToVector3(ptr);
+      FreeNativeVector3(ptr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void GetRigidBodyPointVelocity(IntPtr body, Vector3 pt, out Vector3 ououtVelocity) {
+      if (_GetRigidBodyPointVelocity == null)
+        throw new ApiNotFoundException("GetRigidBodyPointVelocity");
+      
+      IntPtr nPtPtr = Vector3ToNative3(pt);
+      IntPtr ptr = Vector3ToNative3(Vector3.zero);
+      _GetRigidBodyPointVelocity(body, nPtPtr, ptr);
+      ououtVelocity = sVec3.FromNativeToVector3(ptr);
+      FreeNativeVector3(ptr);
+      FreeNativeVector3(nPtPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void RigidBodyResetCenterOfMass(IntPtr body) {
+      if (_RigidBodyResetCenterOfMass == null)
+        throw new ApiNotFoundException("RigidBodyResetCenterOfMass");
+
+      _RigidBodyResetCenterOfMass(body);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void RigidBodyResetInertiaTensor(IntPtr body) {
+      if (_RigidBodyResetInertiaTensor == null)
+        throw new ApiNotFoundException("RigidBodyResetInertiaTensor");
+
+      _RigidBodyResetInertiaTensor(body);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
 
     public void CommonDelete(IntPtr ptr)
     {
@@ -277,45 +917,10 @@ namespace PhyicsRT
 
       _CommonDelete(ptr);
     }
-
-    public IntPtr CreateVec3(float x, float y, float z){
-      if (_CreateVec3 == null)
-        throw new ApiNotFoundException("CreateVec3");
-      return _CreateVec3(x, y, z);
-    }
-    public IntPtr CreateVec4(float x, float y, float z, float w){
-      if (_CreateVec4 == null)
-        throw new ApiNotFoundException("CreateVec4");
-      return _CreateVec4(x, y, z, w);
-    }
     public IntPtr CreateTransform(float px, float py, float pz, float rx, float ry, float rz, float rw, float sx, float sy, float sz) {
       if (_CreateTransform == null)
         throw new ApiNotFoundException("CreateTransform");
       return _CreateTransform( px, py, pz, rx, ry, rz, rw, sx, sy, sz);
-    }
-    public void DestroyVec4(IntPtr ptr)
-    {
-      if (_DestroyVec4 == null)
-        throw new ApiNotFoundException("DestroyVec4");
-      _DestroyVec4(ptr);
-    }
-    public void DestroyVec3(IntPtr ptr)
-    {
-      if (_DestroyVec3 == null)
-        throw new ApiNotFoundException("DestroyVec3");
-      _DestroyVec3(ptr);
-    }
-    public void ActiveRigdBody(IntPtr ptr)
-    {
-      if (_ActiveRigdBody== null)
-        throw new ApiNotFoundException("ActiveRigdBody");
-      _ActiveRigdBody(ptr);
-    }
-    public void DeactiveRigdBody(IntPtr ptr)
-    {
-      if (_DeactiveRigdBody == null)
-        throw new ApiNotFoundException("DeactiveRigdBody");
-      _DeactiveRigdBody(ptr);
     }
     public void DestroyTransform(IntPtr ptr)
     {
@@ -323,145 +928,210 @@ namespace PhyicsRT
         throw new ApiNotFoundException("DestroyTransform");
       _DestroyTransform(ptr);
     }
-    public IntPtr CreateRigdBody(IntPtr world, IntPtr shape, IntPtr position, IntPtr rot, int motionType, int qualityType, float friction, float restitution, float mass, int active, int layer, float gravityFactor, float linearDamping, float angularDamping, IntPtr linearVelocity, IntPtr angularVelocity, IntPtr massProperties)
-    {
-      if (_CreateRigdBody == null)
-        throw new ApiNotFoundException("CreateRigdBody");
 
-      var rs = _CreateRigdBody(world, shape, position, rot, motionType, qualityType, friction, restitution, mass, active, layer, gravityFactor, linearDamping, angularDamping, linearVelocity, angularVelocity, massProperties);
+    public void ActiveRigidBody(IntPtr ptr)
+    {
+      if (_ActiveRigidBody== null)
+        throw new ApiNotFoundException("ActiveRigidBody");
+      _ActiveRigidBody(ptr);
+    }
+    public void DeactiveRigidBody(IntPtr ptr)
+    {
+      if (_DeactiveRigidBody == null)
+        throw new ApiNotFoundException("DeactiveRigidBody");
+      _DeactiveRigidBody(ptr);
+    }
+    public IntPtr CreateRigidBody(IntPtr world, IntPtr shape, Vector3 position, Quaternion rot, int motionType, int qualityType, float friction, 
+      float restitution, float mass, int active, int layer, float gravityFactor, float linearDamping, float angularDamping, 
+      Vector3 centerOfMass, Matrix4x4 inertiaTensor, Vector3 linearVelocity, Vector3 angularVelocity, float maxLinearVelocity, float maxAngularVelocity, IntPtr massProperties)
+    {
+      if (_CreateRigidBody == null)
+        throw new ApiNotFoundException("CreateRigidBody");
+
+      var nPtrPosition = Vector3ToNative3(position);
+      var nPtrRot = QuaternionToNative4(rot);
+      var nPtrInertiaTensor = Matrix4x4ToNative9(inertiaTensor);
+      var nPtrCenterOfMass = Vector3ToNative3(centerOfMass);
+      var nPtrLinearVelocity = Vector3ToNative3(linearVelocity);
+      var nPtrAngularVelocity = Vector3ToNative3(angularVelocity);
+
+      var rs = _CreateRigidBody( 
+        world, shape, nPtrPosition, nPtrRot, motionType, qualityType,
+        friction, restitution, mass, active, layer, gravityFactor, linearDamping, 
+        angularDamping, nPtrCenterOfMass, nPtrInertiaTensor, nPtrLinearVelocity, nPtrAngularVelocity, 
+        maxLinearVelocity, maxAngularVelocity,
+        massProperties);
+      
+      FreeNativeMatrix4x4(nPtrInertiaTensor);
+      FreeNativeVector3(nPtrPosition);
+      FreeNativeVector4(nPtrRot);
+      FreeNativeVector3(nPtrCenterOfMass);
+      FreeNativeVector3(nPtrLinearVelocity);
+      FreeNativeVector3(nPtrAngularVelocity);
+      
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
 
       return rs;
     }
-    public void SetRigdBodyMass(IntPtr body, float mass)
+    public void SetRigidBodyMass(IntPtr body, float mass)
     {
-      if (_SetRigdBodyMass == null)
-        throw new ApiNotFoundException("SetRigdBodyMass");
+      if (_SetRigidBodyMass == null)
+        throw new ApiNotFoundException("SetRigidBodyMass");
 
-      _SetRigdBodyMass(body, mass);
+      _SetRigidBodyMass(body, mass);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
     }
-    public void SetRigdBodyFriction(IntPtr body, float friction)
+    public void SetRigidBodyFriction(IntPtr body, float friction)
     {
-      if (_SetRigdBodyFriction == null)
-        throw new ApiNotFoundException("SetRigdBodyFriction");
+      if (_SetRigidBodyFriction == null)
+        throw new ApiNotFoundException("SetRigidBodyFriction");
 
-      _SetRigdBodyFriction(body, friction);
+      _SetRigidBodyFriction(body, friction);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
     }
-    public void SetRigdBodyRestitution(IntPtr body, float restitution)
+    public void SetRigidBodyRestitution(IntPtr body, float restitution)
     {
-      if (_SetRigdBodyFriction == null)
-        throw new ApiNotFoundException("SetRigdBodyFriction");
+      if (_SetRigidBodyFriction == null)
+        throw new ApiNotFoundException("SetRigidBodyFriction");
 
-      _SetRigdBodyFriction(body, restitution);
+      _SetRigidBodyFriction(body, restitution);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
     }
-    public void SetRigdBodyAngularDamping(IntPtr body, float angularDamping)
+    public void SetRigidBodyAngularDamping(IntPtr body, float angularDamping)
     {
-      if (_SetRigdBodyAngularDamping == null)
-        throw new ApiNotFoundException("SetRigdBodyAngularDamping");
+      if (_SetRigidBodyAngularDamping == null)
+        throw new ApiNotFoundException("SetRigidBodyAngularDamping");
 
-      _SetRigdBodyAngularDamping(body, angularDamping);
+      _SetRigidBodyAngularDamping(body, angularDamping);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
     }
-    public void SetRigdBodyLinearDampin(IntPtr body, float linearDamping)
+    public void SetRigidBodyLinearDampin(IntPtr body, float linearDamping)
     {
-      if (_SetRigdBodyLinearDampin == null)
-        throw new ApiNotFoundException("SetRigdBodyLinearDampin");
+      if (_SetRigidBodyLinearDampin == null)
+        throw new ApiNotFoundException("SetRigidBodyLinearDampin");
 
-      _SetRigdBodyLinearDampin(body, linearDamping);
+      _SetRigidBodyLinearDampin(body, linearDamping);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
     }
-    public void SetRigdBodyCenterOfMass(IntPtr body, IntPtr centerOfMass)
+    public void SetRigidBodyCenterOfMass(IntPtr body, Vector3 centerOfMass)
     {
-      if (_SetRigdBodyCenterOfMass == null)
-        throw new ApiNotFoundException("SetRigdBodyCenterOfMass");
+      if (_SetRigidBodyCenterOfMass == null)
+        throw new ApiNotFoundException("SetRigidBodyCenterOfMass");
 
-      _SetRigdBodyCenterOfMass(body, centerOfMass);
+      var nPtrCenterOfMass = Vector3ToNative3(centerOfMass);
+      _SetRigidBodyCenterOfMass(body, nPtrCenterOfMass);
+      FreeNativeVector3(nPtrCenterOfMass);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
     }
-    public void SetRigdBodyPosition(IntPtr body, IntPtr pos)
+    public void SetRigidBodyPosition(IntPtr body, Vector3 pos)
     {
-      if (_SetRigdBodyPosition == null)
-        throw new ApiNotFoundException("SetRigdBodyPosition");
+      if (_SetRigidBodyPosition == null)
+        throw new ApiNotFoundException("SetRigidBodyPosition");
 
-      _SetRigdBodyPosition(body, pos);
+      var nPtrPos = Vector3ToNative3(pos);
+      _SetRigidBodyPosition(body, nPtrPos);
+      FreeNativeVector3(nPtrPos);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
     }
-    public void SetRigdBodyPositionAndRotation(IntPtr body, IntPtr pos, IntPtr roate)
+    public void SetRigidBodyPositionAndRotation(IntPtr body, Vector3 pos, Quaternion roate)
     {
-      if (_SetRigdBodyPositionAndRotation == null)
-        throw new ApiNotFoundException("SetRigdBodyPositionAndRotation");
+      if (_SetRigidBodyPositionAndRotation == null)
+        throw new ApiNotFoundException("SetRigidBodyPositionAndRotation");
 
-      _SetRigdBodyPositionAndRotation(body, pos, roate);
+      var nPtrPos = Vector3ToNative3(pos);
+      var nPtrRot = QuaternionToNative4(roate);
+      _SetRigidBodyPositionAndRotation(body, nPtrPos, nPtrRot);
+      FreeNativeVector3(nPtrPos);
+      FreeNativeVector4(nPtrRot);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
     }
-    public void SetRigdBodyMotionType(IntPtr body, int newState)
+    public void SetRigidBodyMotionType(IntPtr body, int newState)
     {
-      if (_SetRigdBodyMotionType == null)
-        throw new ApiNotFoundException("SetRigdBodyMotionType");
+      if (_SetRigidBodyMotionType == null)
+        throw new ApiNotFoundException("SetRigidBodyMotionType");
 
-      _SetRigdBodyMotionType(body, newState);
+      _SetRigidBodyMotionType(body, newState);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
     }
-    public void SetRigdBodyLayer(IntPtr body, int layer) 
+    public void SetRigidBodyLayer(IntPtr body, int layer) 
     {
-      if (_SetRigdBodyLayer == null)
-        throw new ApiNotFoundException("SetRigdBodyLayer");
+      if (_SetRigidBodyLayer == null)
+        throw new ApiNotFoundException("SetRigidBodyLayer");
 
-      _SetRigdBodyLayer(body, layer);
+      _SetRigidBodyLayer(body, layer);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
     }
-    public void DestroyRigdBody(IntPtr body)
+    public void SetRigidBodyMaxLinearVelocity(IntPtr body, float v)
     {
-      if (_DestroyRigdBody == null)
-        throw new ApiNotFoundException("DestroyRigdBody");
+      if (_SetRigidBodyMaxLinearVelocity == null)
+        throw new ApiNotFoundException("SetRigidBodyMaxLinearVelocity");
 
-      _DestroyRigdBody(body);
+      _SetRigidBodyMaxLinearVelocity(body, v);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
     }
-    public void SetRigdBodyGravityFactor(IntPtr body, float gravityFactor)
+    public void SetRigidBodyMaxAngularVelocity(IntPtr body, float v)
     {
-      if (_SetRigdBodyGravityFactor == null)
-        throw new ApiNotFoundException("SetRigdBodyGravityFactor");
+      if (_SetRigidBodyMaxAngularVelocity == null)
+        throw new ApiNotFoundException("SetRigidBodyMaxAngularVelocity");
 
-      _SetRigdBodyGravityFactor(body, gravityFactor);
+      _SetRigidBodyMaxAngularVelocity(body, v);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }   
+    public void DestroyRigidBody(IntPtr body)
+    {
+      if (_DestroyRigidBody == null)
+        throw new ApiNotFoundException("DestroyRigidBody");
+
+      _DestroyRigidBody(body);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void SetRigidBodyGravityFactor(IntPtr body, float gravityFactor)
+    {
+      if (_SetRigidBodyGravityFactor == null)
+        throw new ApiNotFoundException("SetRigidBodyGravityFactor");
+
+      _SetRigidBodyGravityFactor(body, gravityFactor);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
@@ -525,48 +1195,67 @@ namespace PhyicsRT
 
       return rs;
     }
-    public IntPtr ComputeBoxSurfaceMassProperties(IntPtr halfExtents, float mass, float surfaceThickness)
+    public IntPtr ComputeBoxSurfaceMassProperties(Vector3 halfExtents, float mass, float surfaceThickness)
     {
       if (_ComputeBoxSurfaceMassProperties == null)
         throw new ApiNotFoundException("ComputeBoxSurfaceMassProperties");
 
-      var rs = _ComputeBoxSurfaceMassProperties(halfExtents, mass, surfaceThickness);
+      var p0 = Vector3ToNative3(halfExtents);
+      var rs = _ComputeBoxSurfaceMassProperties(p0, mass, surfaceThickness);
+      FreeNativeVector3(p0);
+
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
 
       return rs;
     }
-    public IntPtr ComputeBoxVolumeMassProperties(IntPtr halfExtents, float mass)
+    public IntPtr ComputeBoxVolumeMassProperties(Vector3 halfExtents, float mass)
     {
       if (_ComputeBoxVolumeMassProperties == null)
         throw new ApiNotFoundException("ComputeBoxVolumeMassProperties");
 
-      var rs = _ComputeBoxVolumeMassProperties(halfExtents, mass);
+      var p0 = Vector3ToNative3(halfExtents);
+      var rs = _ComputeBoxVolumeMassProperties(p0, mass);
+      FreeNativeVector3(p0);
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
 
       return rs;
     }
-    public IntPtr ComputeCapsuleVolumeMassProperties(IntPtr startAxis, IntPtr endAxis, float radius, float mass)
+    public IntPtr ComputeCapsuleVolumeMassProperties(Vector3 startAxis, Vector3 endAxis, float radius, float mass)
     {
       if (_ComputeCapsuleVolumeMassProperties == null)
         throw new ApiNotFoundException("ComputeCapsuleVolumeMassProperties");
 
-      var rs = _ComputeCapsuleVolumeMassProperties(startAxis, endAxis, radius, mass);
+      var pStartAxis = Vector3ToNative3(startAxis);
+      var pEndAxis = Vector3ToNative3(endAxis);
+
+      var rs = _ComputeCapsuleVolumeMassProperties(pStartAxis, pEndAxis, radius, mass);
+
+      FreeNativeVector3(pStartAxis);
+      FreeNativeVector3(pEndAxis);
+
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
 
       return rs;
     }
-    public IntPtr ComputeCylinderVolumeMassProperties(IntPtr startAxis, IntPtr endAxis, float radius, float mass)
+    public IntPtr ComputeCylinderVolumeMassProperties(Vector3 startAxis, Vector3 endAxis, float radius, float mass)
     {
       if (_ComputeCylinderVolumeMassProperties == null)
         throw new ApiNotFoundException("ComputeCylinderVolumeMassProperties");
 
-      var rs = _ComputeCylinderVolumeMassProperties(startAxis, endAxis, radius, mass);
+      var pStartAxis = Vector3ToNative3(startAxis);
+      var pEndAxis = Vector3ToNative3(endAxis);
+
+      var rs = _ComputeCylinderVolumeMassProperties(pStartAxis, pEndAxis, radius, mass);
+
+      FreeNativeVector3(pStartAxis);
+      FreeNativeVector3(pEndAxis);
+
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
@@ -597,24 +1286,38 @@ namespace PhyicsRT
 
       return rs;
     }
-    public IntPtr ComputeTriangleSurfaceMassProperties(IntPtr v0, IntPtr v1, IntPtr v2, float mass, float surfaceThickness)
+    public IntPtr ComputeTriangleSurfaceMassProperties(Vector3 v0, Vector3 v1, Vector3 v2, float mass, float surfaceThickness)
     {
       if (_ComputeTriangleSurfaceMassProperties == null)
         throw new ApiNotFoundException("ComputeTriangleSurfaceMassProperties");
 
-      var rs = _ComputeTriangleSurfaceMassProperties(v0, v1, v2, mass, surfaceThickness);
+      var p0 = Vector3ToNative3(v0);
+      var p1 = Vector3ToNative3(v1);
+      var p2 = Vector3ToNative3(v2);
+
+      var rs = _ComputeTriangleSurfaceMassProperties(p0, p1, p2, mass, surfaceThickness);
+
+      FreeNativeVector3(p0);
+      FreeNativeVector3(p1);
+      FreeNativeVector3(p2);
+
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
 
       return rs;
     }
-    public IntPtr CreateBoxShape(IntPtr boxSize, float radius)
+    public IntPtr CreateBoxShape(Vector3 boxSize, float radius)
     {
       if (_CreateBoxShape == null)
         throw new ApiNotFoundException("CreateBoxShape");
 
-      var rs = _CreateBoxShape(boxSize, radius);
+      var p0 = Vector3ToNative3(boxSize);
+
+      var rs = _CreateBoxShape(p0, radius);
+
+      FreeNativeVector3(p0);
+
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
@@ -633,36 +1336,59 @@ namespace PhyicsRT
 
       return rs;
     }
-    public IntPtr CreateCapsuleShape(IntPtr start, IntPtr end, float radius)
+    public IntPtr CreateCapsuleShape(Vector3 start, Vector3 end, float radius)
     {
       if (_CreateCapsuleShape == null)
         throw new ApiNotFoundException("CreateCapsuleShape");
 
-      var rs = _CreateCapsuleShape(start, end, radius);
+      var pStart = Vector3ToNative3(start);
+      var pEnd = Vector3ToNative3(end);
+
+      var rs = _CreateCapsuleShape(pStart, pEnd, radius);
+
+      FreeNativeVector3(pStart);
+      FreeNativeVector3(pEnd);
+
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
 
       return rs;
     }
-    public IntPtr CreateCylindeShape(IntPtr start, IntPtr end, float radius, float paddingRadius)
+    public IntPtr CreateCylindeShape(Vector3 start, Vector3 end, float radius, float paddingRadius)
     {
       if (_CreateCylindeShape == null)
         throw new ApiNotFoundException("CreateCylindeShape");
 
-      var rs = _CreateCylindeShape(start, end, radius, paddingRadius);
+      var pStart = Vector3ToNative3(start);
+      var pEnd = Vector3ToNative3(end);
+
+      var rs = _CreateCylindeShape(pStart, pEnd, radius, paddingRadius);
+
+      FreeNativeVector3(pStart);
+      FreeNativeVector3(pEnd);
+
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
 
       return rs;
     }
-    public IntPtr CreateTriangleShape(IntPtr v0, IntPtr v1, IntPtr v2)
+    public IntPtr CreateTriangleShape(Vector3 v0, Vector3 v1, Vector3 v2)
     {
       if (_CreateTriangleShape == null)
         throw new ApiNotFoundException("CreateTriangleShape");
+      
+      var p0 = Vector3ToNative3(v0);
+      var p1 = Vector3ToNative3(v1);
+      var p2 = Vector3ToNative3(v2);
 
-      var rs = _CreateTriangleShape(v0, v1, v2);
+      var rs = _CreateTriangleShape(p0, p1, p2);
+
+      FreeNativeVector3(p0);
+      FreeNativeVector3(p1);
+      FreeNativeVector3(p2);
+
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
@@ -693,12 +1419,17 @@ namespace PhyicsRT
 
       return rs;
     }
-    public IntPtr CreateConvexTranslateShape(IntPtr child, IntPtr translation)
+    public IntPtr CreateConvexTranslateShape(IntPtr child, Vector3 translation)
     {
       if (_CreateConvexTranslateShape == null)
         throw new ApiNotFoundException("CreateConvexTranslateShape");
 
-      var rs = _CreateConvexTranslateShape(child, translation);
+      var ptr = Vector3ToNative3(translation);
+
+      var rs = _CreateConvexTranslateShape(child, ptr);
+
+      FreeNativeVector3(ptr);
+
       var exp = PhysicsApi.checkException();
       if (exp != null)
         throw new ApiException(exp);
@@ -786,7 +1517,9 @@ namespace PhyicsRT
       if (exp != null)
         throw new ApiException(exp);
     }
-    public IntPtr CreatePhysicsWorld(IntPtr gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance, bool bContinuous, bool bVisualDebugger, uint layerMask, uint[] layerToMask)
+    public IntPtr CreatePhysicsWorld(Vector3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance,
+      bool bContinuous, bool bVisualDebugger, uint layerMask, uint[] layerToMask,
+      fnOnConstraintBreakingCallback onConstraintBreakingCallback, fnOnBodyTriggerEnterCallback onBodyTriggerEnterCallback, fnOnBodyTriggerLeaveCallback onBodyTriggerLeaveCallback)
     {
       if (_CreatePhysicsWorld == null)
         throw new ApiNotFoundException("CreatePhysicsWorld");
@@ -799,8 +1532,16 @@ namespace PhyicsRT
         layerToMaskPtr2 = new IntPtr(layerToMaskPtr2.ToInt64() + i);
       }
 
-      var rs = _CreatePhysicsWorld(gravity, solverIterationCount, broadPhaseWorldSize, collisionTolerance, bContinuous, bVisualDebugger, layerMask, layerToMaskPtr);
+      var pGravity = Vector3ToNative3(gravity);
 
+      var onConstraintBreakingCallbackPtr = Marshal.GetFunctionPointerForDelegate(onConstraintBreakingCallback);
+      var onBodyTriggerEnterCallbackPtr = Marshal.GetFunctionPointerForDelegate(onBodyTriggerEnterCallback);
+      var onBodyTriggerLeaveCallbackPtr = Marshal.GetFunctionPointerForDelegate(onBodyTriggerLeaveCallback);
+
+      var rs = _CreatePhysicsWorld(pGravity, solverIterationCount, broadPhaseWorldSize, collisionTolerance, bContinuous, bVisualDebugger, layerMask, layerToMaskPtr, 
+        onConstraintBreakingCallbackPtr, onBodyTriggerEnterCallbackPtr, onBodyTriggerLeaveCallbackPtr);
+
+      FreeNativeVector4(pGravity);
       Marshal.FreeHGlobal(layerToMaskPtr);
 
       var exp = PhysicsApi.checkException();
@@ -830,12 +1571,16 @@ namespace PhyicsRT
       if (exp != null)
         throw new ApiException(exp);
     }
-    public void SetPhysicsWorldGravity(IntPtr world, IntPtr gravity)
+    public void SetPhysicsWorldGravity(IntPtr world, Vector3 gravity)
     {
       if (_SetPhysicsWorldGravity == null)
         throw new ApiNotFoundException("SetPhysicsWorldGravity");
 
-      _SetPhysicsWorldGravity(world, gravity);
+      var pGravity = Vector3ToNative3(gravity);
+
+      _SetPhysicsWorldGravity(world, pGravity);
+
+      FreeNativeVector4(pGravity);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)

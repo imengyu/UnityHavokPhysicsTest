@@ -282,6 +282,9 @@ class PhysicsShapeEditor : Editor
     }
     private void DrawShapeInspector() {
 
+        EditorGUILayout.EditorToolbarForTarget(EditorGUIUtility.TrTempContent("Edit Collider"), base.target);
+        GUILayout.Space(5f);
+        
         switch ((ShapeType)pShapeType.enumValueIndex)
         {
             case ShapeType.Box:
@@ -289,10 +292,6 @@ class PhysicsShapeEditor : Editor
             case ShapeType.Capsule:
             case ShapeType.Cylinder:
             case ShapeType.Plane:
-            case ShapeType.ConvexHull:
-            case ShapeType.Mesh:
-                EditorGUILayout.EditorToolbarForTarget(EditorGUIUtility.TrTempContent("Edit Collider"), base.target);
-                GUILayout.Space(5f);
                 AutomaticPrimitiveControls();
                 break;
         }

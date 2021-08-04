@@ -45,4 +45,57 @@ namespace PhyicsRT
       public int verticesCount;
       public int trianglesCount;
   };
+  [StructLayout(LayoutKind.Sequential)]
+  public struct sRayCastResult
+  {
+      public float hitFraction;
+      [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3, ArraySubType = UnmanagedType.R4)]
+      public float[] normal; //float normal[3]
+      [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3, ArraySubType = UnmanagedType.R4)]
+      public float[] pos; //float pos[3]
+      public int bodyId;
+      public IntPtr body;
+  };
+  [StructLayout(LayoutKind.Sequential)]
+  public struct sConstraintBreakData {
+      
+      /// float
+      public float threshold;
+      
+      /// float
+      public float maximumAngularImpulse;
+      
+      /// float
+      public float maximumLinearImpulse;
+  }
+  [StructLayout(LayoutKind.Sequential)]
+  public struct sConstraintMotorData {
+      
+      /// int
+      public int spring;
+      
+      /// float
+      public float m_tau;
+      
+      /// float
+      public float m_damping;
+      
+      /// float
+      public float m_proportionalRecoveryVelocity;
+      
+      /// float
+      public float m_constantRecoveryVelocity;
+      
+      /// float
+      public float m_minForce;
+      
+      /// float
+      public float m_maxForce;
+      
+      /// float
+      public float m_springConstant;
+      
+      /// float
+      public float m_springDamping;
+  }
 }

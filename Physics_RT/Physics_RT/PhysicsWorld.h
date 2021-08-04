@@ -3,7 +3,7 @@
 #include "PhysicsCommon.h"
 #include "SimpleLinkedList.hpp"
 
-typedef void(__cdecl* fnOnConstraintBreakingCallback)(struct sPhysicsConstraints* constraint, float forceMagnitude, int removed);
+typedef void(__cdecl* fnOnConstraintBreakingCallback)(struct sPhysicsConstraints* constraint, int id, float forceMagnitude, int removed);
 typedef void(__cdecl* fnOnBodyTriggerEnterCallback)(struct sPhysicsRigidbody* body, struct sPhysicsRigidbody* bodyOther, int id, int otherId);
 typedef void(__cdecl* fnOnBodyTriggerLeaveCallback)(struct sPhysicsRigidbody* body, struct sPhysicsRigidbody* bodyOther, int id, int otherId);
 
@@ -18,7 +18,7 @@ struct sPhysicsWorld {
 	hkVisualDebugger* vdb;
 	hkpPhysicsContext* context;
 	hkpGroupFilter* filter;
-	MyBreakableListener* breakableListener;
+	struct MyBreakableListener* breakableListener;
 
 	sPhysicsWorldCallbacks callbacks;
 	SimpleLinkedList<sPhysicsRigidbody> bodyList;
@@ -26,7 +26,13 @@ struct sPhysicsWorld {
 	int bodyCurrentIndex;
 };
 
-
+struct sRayCastResult {
+	float hitFraction;
+	float normal[3];
+	float pos[3];
+	int bodyId;
+	sPhysicsRigidbody* body;
+};
 
 sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance,
 	bool bContinuous, bool bVisualDebugger, unsigned int layerMask, unsigned int* layerToMask,
@@ -36,5 +42,8 @@ void StepPhysicsWorld(sPhysicsWorld* world, float timestep);
 void SetPhysicsWorldGravity(sPhysicsWorld* world, spVec3 gravity);
 void SetPhysicsWorldCollisionLayerMasks(sPhysicsWorld* world, unsigned int layerId, unsigned int toMask, int enable, int forceUpdate);
 int ReadPhysicsWorldBodys(sPhysicsWorld* world, float* buffer, int count);
+
+int PhysicsWorldRayCastBody(sPhysicsWorld* world, spVec3 from, spVec3 to, int rayLayer, sRayCastResult** outResult);
+int PhysicsWorldRayCastHit(sPhysicsWorld* world, spVec3 from, spVec3 to, int rayLayer, int castAll, sRayCastResult** outResult);
 
 void TestAssert();

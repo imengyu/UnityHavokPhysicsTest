@@ -4,10 +4,11 @@
 
 class MyBreakableListener : public hkpConstraintListener {
 public:
+	HK_DECLARE_NONVIRTUAL_CLASS_ALLOCATOR(HK_MEMORY_CLASS_USER, MyBreakableListener);
 	MyBreakableListener(sPhysicsWorld* world);
 	void constraintBreakingCallback(hkpBreakableConstraintEvent& event);
 private:
-	sPhysicsWorld* world
+	sPhysicsWorld* world;
 };
 
 class MyTriggerVolume : public hkpTriggerVolume {

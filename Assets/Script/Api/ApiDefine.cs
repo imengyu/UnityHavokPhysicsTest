@@ -161,23 +161,23 @@ namespace PhyicsRT
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate void fnDestoryConstraints(IntPtr constraints);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate IntPtr fnCreateBallAndSocketConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  public delegate IntPtr fnCreateBallAndSocketConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, IntPtr breakable);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate IntPtr fnCreateFixedConstraint(IntPtr body, IntPtr otherBody, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  public delegate IntPtr fnCreateFixedConstraint(IntPtr body, IntPtr otherBody, IntPtr breakable);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate IntPtr fnCreateStiffSpringConstraint(IntPtr body, IntPtr otherBody, IntPtr povitAW, IntPtr povitBW, float springMin, float springMax, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  public delegate IntPtr fnCreateStiffSpringConstraint(IntPtr body, IntPtr otherBody, IntPtr povitAW, IntPtr povitBW, float springMin, float springMax, IntPtr breakable);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate IntPtr fnCreateHingeConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, IntPtr axis, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  public delegate IntPtr fnCreateHingeConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, IntPtr axis, IntPtr breakable);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate IntPtr fnCreateLimitedHingeConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, IntPtr axis, float agularLimitMin, float agularLimitMax, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  public delegate IntPtr fnCreateLimitedHingeConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, IntPtr axis, float agularLimitMin, float agularLimitMax, IntPtr breakable, IntPtr motorData);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate IntPtr fnCreateWheelConstraint(IntPtr wheelRigidBody, IntPtr chassis, IntPtr axle, IntPtr suspension, IntPtr steering, float suspensionLimitMin, float suspensionLimitMax, float suspensionStrength, float suspensionDamping, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  public delegate IntPtr fnCreateWheelConstraint(IntPtr wheelRigidBody, IntPtr chassis, IntPtr axle, IntPtr suspension, IntPtr steering, float suspensionLimitMin, float suspensionLimitMax, float suspensionStrength, float suspensionDamping, IntPtr breakable);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate IntPtr fnCreatePulleyConstraint(IntPtr body, IntPtr otherBody, IntPtr bodyPivot0, IntPtr bodyPivots1, IntPtr worldPivots0, IntPtr worldPivots1, float leverageRatio, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  public delegate IntPtr fnCreatePulleyConstraint(IntPtr body, IntPtr otherBody, IntPtr bodyPivot0, IntPtr bodyPivots1, IntPtr worldPivots0, IntPtr worldPivots1, float leverageRatio, IntPtr breakable);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate IntPtr fnCreatePrismaticConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, IntPtr axis, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  public delegate IntPtr fnCreatePrismaticConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, IntPtr axis, IntPtr breakable, IntPtr motorData);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate IntPtr fnCreateCogWheelConstraint(IntPtr body, IntPtr otherBody, IntPtr rotationPivotA, IntPtr rotationAxisA, float radiusA, IntPtr rotationPivotB, IntPtr rotationAxisB, float radiusB, int breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse);
+  public delegate IntPtr fnCreateCogWheelConstraint(IntPtr body, IntPtr otherBody, IntPtr rotationPivotA, IntPtr rotationAxisA, float radiusA, IntPtr rotationPivotB, IntPtr rotationAxisB, float radiusB, IntPtr breakable);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate void fnRigidBodyApplyForce(IntPtr body, float delteTime, IntPtr force);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -193,33 +193,28 @@ namespace PhyicsRT
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate int fnIsConstraintBroken(IntPtr constraint);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate void fnSetConstraintBroken(IntPtr constraint, bool broken, float force);
+  public delegate void fnSetConstraintBroken(IntPtr constraint, int broken, float force);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate int fnGetRigidBodyId(IntPtr body);
-
-  
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate int fnGetConstraintId(IntPtr body);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate void fnSetConstraintEnable(IntPtr constraint, int enable);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate int fnPhysicsWorldRayCastBody(IntPtr world, IntPtr from, IntPtr to, int rayLayer, IntPtr outResult);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate int fnPhysicsWorldRayCastHit(IntPtr world, IntPtr from, IntPtr to, int rayLayer, int castAll, IntPtr outResult);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate int fnGetVersion();
+    
   /// Return Type: void
   ///constraint: sPhysicsConstraints*
   ///forceMagnitude: float
   ///removed: int
   [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-  public delegate void fnOnConstraintBreakingCallback(IntPtr constraint, float forceMagnitude, int removed);
-
-  /// Return Type: void
-  ///body: sPhysicsRigidbody*
-  ///bodyOther: sPhysicsRigidbody*
-  ///id: int
-  ///otherId: int
+  public delegate void fnOnConstraintBreakingCallback(IntPtr constraint, int id, float forceMagnitude, int removed);
   [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-  public delegate void fnOnBodyTriggerEnterCallback(IntPtr body, IntPtr bodyOther, int id, int otherId);
-
-  /// Return Type: void
-  ///body: sPhysicsRigidbody*
-  ///bodyOther: sPhysicsRigidbody*
-  ///id: int
-  ///otherId: int
-  [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-  public delegate void fnOnBodyTriggerLeaveCallback(IntPtr body, IntPtr bodyOther, int id, int otherId);
+  public delegate void fnOnBodyTriggerEventCallback(IntPtr body, IntPtr bodyOther, int id, int otherId);
 
   #endregion
 
@@ -238,12 +233,20 @@ namespace PhyicsRT
 
   public class ApiStruct
   {
+    public const int Version = 2301;
+
     //获取所有函数指针
     internal void initAll(IntPtr apiArrayPtr, int len)
     {
       int i = 0;
       IntPtr[] apiArray = new IntPtr[len];
       Marshal.Copy(apiArrayPtr, apiArray, 0, len);
+
+      _GetVersion = Marshal.GetDelegateForFunctionPointer<fnGetVersion>(apiArray[254]);
+
+      var v = _GetVersion();
+      if(v != Version)
+        throw new ApiException("Native lib version is not compatible with this (" + v + " !=" + Version + ")");
 
       _CommonDelete = Marshal.GetDelegateForFunctionPointer<fnCommonDelete>(apiArray[i++]);
       _CreateVec3 = Marshal.GetDelegateForFunctionPointer<fnCreateVec3>(apiArray[i++]);
@@ -335,6 +338,10 @@ namespace PhyicsRT
       _IsConstraintBroken = Marshal.GetDelegateForFunctionPointer<fnIsConstraintBroken>(apiArray[i++]);
       _SetConstraintBroken = Marshal.GetDelegateForFunctionPointer<fnSetConstraintBroken>(apiArray[i++]);
       _GetRigidBodyId = Marshal.GetDelegateForFunctionPointer<fnGetRigidBodyId>(apiArray[i++]);
+      _GetConstraintId = Marshal.GetDelegateForFunctionPointer<fnGetConstraintId>(apiArray[i++]);
+      _SetConstraintEnable = Marshal.GetDelegateForFunctionPointer<fnSetConstraintEnable>(apiArray[i++]);
+      _PhysicsWorldRayCastBody = Marshal.GetDelegateForFunctionPointer<fnPhysicsWorldRayCastBody>(apiArray[i++]);
+      _PhysicsWorldRayCastHit = Marshal.GetDelegateForFunctionPointer<fnPhysicsWorldRayCastHit>(apiArray[i++]);
 
     }
 
@@ -428,7 +435,13 @@ namespace PhyicsRT
     private fnIsConstraintBroken _IsConstraintBroken;
     private fnSetConstraintBroken _SetConstraintBroken;
     private fnGetRigidBodyId _GetRigidBodyId;
+    private fnGetConstraintId _GetConstraintId;
+    private fnSetConstraintEnable _SetConstraintEnable;
+    private fnPhysicsWorldRayCastBody _PhysicsWorldRayCastBody;
+    private fnPhysicsWorldRayCastHit _PhysicsWorldRayCastHit;
+    private fnGetVersion _GetVersion;
 
+    public int GetVersion() { return _GetVersion(); }
     public int BoolToInt(bool a) {
       return a ? 1 : 0;
     }   
@@ -502,11 +515,293 @@ namespace PhyicsRT
       _DestroyTransform(a);
     }
 
+    public int PhysicsWorldRayCastBody(IntPtr world, Vector3 from, Vector3 to, int rayLayer, out sRayCastResult outResult) {
+      if (_PhysicsWorldRayCastBody == null)
+        throw new ApiNotFoundException("PhysicsWorldRayCastBody");
+
+      var outPtr = Marshal.AllocHGlobal(Marshal.SizeOf<IntPtr>());
+      var fromPtr = Vector3ToNative3(from);
+      var toPtr = Vector3ToNative3(to);
+      var rs = _PhysicsWorldRayCastBody(world, fromPtr, toPtr, rayLayer, outPtr);
+      FreeNativeVector3(fromPtr);
+      FreeNativeVector3(toPtr);
+
+      if(rs > 0) {
+        var rsPtr = Marshal.ReadIntPtr(outPtr);
+        outResult = Marshal.PtrToStructure<sRayCastResult>(rsPtr);
+        _CommonDelete(rsPtr);
+      } else {
+        outResult = default(sRayCastResult);
+      }
+      Marshal.FreeHGlobal(outPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public int PhysicsWorldRayCastHit(IntPtr world, Vector3 from, Vector3 to, int rayLayer, bool castAll, out sRayCastResult[] outResult) {
+      if (_PhysicsWorldRayCastHit == null)
+        throw new ApiNotFoundException("PhysicsWorldRayCastHit");
+
+      var outPtr = Marshal.AllocHGlobal(Marshal.SizeOf<IntPtr>());
+      var fromPtr = Vector3ToNative3(from);
+      var toPtr = Vector3ToNative3(to);
+      var rs = _PhysicsWorldRayCastHit(world, fromPtr, toPtr, rayLayer, BoolToInt(castAll), outPtr);
+      FreeNativeVector3(fromPtr);
+      FreeNativeVector3(toPtr);
+
+      if(rs > 0) {
+
+        if(castAll) {
+          var rsPtr = Marshal.ReadIntPtr(outPtr);
+          var rsPtrArr = new IntPtr[rs];
+          Marshal.Copy(rsPtr, rsPtrArr, 0, rs);
+          outResult = new sRayCastResult[rs];
+          for(int i = 0; i < rs; i++)
+            outResult[i] = Marshal.PtrToStructure<sRayCastResult>(rsPtrArr[i]);
+          _CommonDelete(rsPtr);
+        } else {
+          var rsPtr = Marshal.ReadIntPtr(outPtr);
+          outResult = new sRayCastResult[1];
+          outResult[0] = Marshal.PtrToStructure<sRayCastResult>(rsPtr);
+          _CommonDelete(rsPtr);
+        }
+      } else {
+        outResult = null;
+      }
+      Marshal.FreeHGlobal(outPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+
+    private IntPtr ConstraintBreakDataToNative(sConstraintBreakData data) {
+      IntPtr rs = Marshal.AllocHGlobal(Marshal.SizeOf(data));
+      Marshal.StructureToPtr(data, rs, false);
+      return rs;
+    }
+    private IntPtr ConstraintMotorDataToNative(sConstraintMotorData data) {
+      IntPtr rs = Marshal.AllocHGlobal(Marshal.SizeOf(data));
+      Marshal.StructureToPtr(data, rs, false);
+      return rs;
+    }
+
+    public IntPtr CreateBallAndSocketConstraint(IntPtr body, IntPtr otherBody, Vector3 povit, sConstraintBreakData breakable) {
+      if (_CreateBallAndSocketConstraint == null)
+        throw new ApiNotFoundException("CreateBallAndSocketConstraint");
+
+      var povitPtr = Vector3ToNative3(povit);
+      var breakablePtr = ConstraintBreakDataToNative(breakable);
+      var rs = _CreateBallAndSocketConstraint(body, otherBody, povitPtr, breakablePtr);
+      FreeNativeVector3(povitPtr);
+      Marshal.FreeHGlobal(breakablePtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreateFixedConstraint(IntPtr body, IntPtr otherBody, sConstraintBreakData breakable) {
+      if (_CreateFixedConstraint == null)
+        throw new ApiNotFoundException("CreateFixedConstraint");
+
+      var breakablePtr = ConstraintBreakDataToNative(breakable);
+      var rs = _CreateFixedConstraint(body, otherBody, breakablePtr);
+      Marshal.FreeHGlobal(breakablePtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreateStiffSpringConstraint(IntPtr body, IntPtr otherBody, Vector3 povitAW, Vector3 povitBW, float springMin, float springMax, sConstraintBreakData breakable) {
+      if (_CreateStiffSpringConstraint == null)
+        throw new ApiNotFoundException("CreateStiffSpringConstraint");
+
+      var povitAWPtr = Vector3ToNative3(povitAW);
+      var povitBWPtr = Vector3ToNative3(povitBW);
+      var breakablePtr = ConstraintBreakDataToNative(breakable);
+      var rs = _CreateStiffSpringConstraint(body, otherBody, povitAWPtr, povitBWPtr, springMin, springMax, breakablePtr);
+      FreeNativeVector3(povitAWPtr);
+      FreeNativeVector3(povitBWPtr);
+      Marshal.FreeHGlobal(breakablePtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreateHingeConstraint(IntPtr body, IntPtr otherBody, Vector3 povit, Vector3 axis, sConstraintBreakData breakable) {
+      if (_CreateHingeConstraint == null)
+        throw new ApiNotFoundException("CreateHingeConstraint");
+
+      var povitPtr = Vector3ToNative3(povit);
+      var axisPtr = Vector3ToNative3(axis);
+      var breakablePtr = ConstraintBreakDataToNative(breakable);
+      var rs = _CreateHingeConstraint(body, otherBody, povitPtr, axisPtr, breakablePtr);
+      FreeNativeVector3(povitPtr);
+      FreeNativeVector3(axisPtr);
+      Marshal.FreeHGlobal(breakablePtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreateLimitedHingeConstraint(IntPtr body, IntPtr otherBody, Vector3 povit, Vector3 axis, float agularLimitMin, float agularLimitMax, sConstraintBreakData breakable, sConstraintMotorData motorData) {
+      if (_CreateLimitedHingeConstraint == null)
+        throw new ApiNotFoundException("CreateLimitedHingeConstraint");
+
+      var povitPtr = Vector3ToNative3(povit);
+      var axisPtr = Vector3ToNative3(povit);
+      var breakablePtr = ConstraintBreakDataToNative(breakable);
+      var motoDataPtr = ConstraintMotorDataToNative(motorData);
+      var rs = _CreateLimitedHingeConstraint(body, otherBody, povitPtr, axisPtr, agularLimitMin, agularLimitMax, breakablePtr, motoDataPtr);
+      FreeNativeVector3(povitPtr);
+      FreeNativeVector3(axisPtr);
+      Marshal.FreeHGlobal(breakablePtr);
+      Marshal.FreeHGlobal(motoDataPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreateWheelConstraint(IntPtr wheelRigidBody, IntPtr chassis, Vector3 axle, Vector3 suspension, Vector3 steering, float suspensionLimitMin, float suspensionLimitMax, float suspensionStrength, float suspensionDamping, sConstraintBreakData breakable) {
+      if (_CreateWheelConstraint == null)
+        throw new ApiNotFoundException("CreateWheelConstraint");
+
+      var axlePtr = Vector3ToNative3(axle);
+      var suspensionPtr = Vector3ToNative3(suspension);
+      var steeringPtr = Vector3ToNative3(steering);
+      var breakablePtr = ConstraintBreakDataToNative(breakable);
+      var rs = _CreateWheelConstraint(wheelRigidBody, chassis, axlePtr, suspensionPtr, steeringPtr, suspensionLimitMin, suspensionLimitMax, suspensionStrength, suspensionDamping, breakablePtr);
+      FreeNativeVector3(axlePtr);
+      FreeNativeVector3(suspensionPtr);
+      FreeNativeVector3(steeringPtr);
+      Marshal.FreeHGlobal(breakablePtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreatePulleyConstraint(IntPtr body, IntPtr otherBody, Vector3 bodyPivot0, Vector3 bodyPivots1, Vector3 worldPivots0, Vector3 worldPivots1, float leverageRatio, sConstraintBreakData breakable) {
+      if (_CreatePulleyConstraint == null)
+        throw new ApiNotFoundException("CreatePulleyConstraint");
+
+      var bodyPivot0Ptr = Vector3ToNative3(bodyPivot0);
+      var bodyPivots1Ptr = Vector3ToNative3(bodyPivots1);
+      var worldPivots0Ptr = Vector3ToNative3(worldPivots0);
+      var worldPivots1Ptr = Vector3ToNative3(worldPivots1);
+      var breakablePtr = ConstraintBreakDataToNative(breakable);
+      var rs = _CreatePulleyConstraint(body, otherBody, bodyPivot0Ptr, bodyPivots1Ptr, worldPivots0Ptr, worldPivots1Ptr, leverageRatio, breakablePtr);
+      FreeNativeVector3(bodyPivot0Ptr);
+      FreeNativeVector3(bodyPivots1Ptr);
+      FreeNativeVector3(worldPivots0Ptr);
+      FreeNativeVector3(worldPivots1Ptr);
+      Marshal.FreeHGlobal(breakablePtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreatePrismaticConstraint(IntPtr body, IntPtr otherBody, Vector3 povit, Vector3 axis, sConstraintBreakData breakable, sConstraintMotorData motorData) {
+      if (_CreatePrismaticConstraint == null)
+        throw new ApiNotFoundException("CreatePrismaticConstraint");
+
+      var povitPtr = Vector3ToNative3(povit);
+      var axisPtr = Vector3ToNative3(axis);
+      
+      var breakablePtr = ConstraintBreakDataToNative(breakable);
+      var motoDataPtr = ConstraintMotorDataToNative(motorData);
+      var rs = _CreatePrismaticConstraint(body, otherBody, povitPtr, axisPtr, breakablePtr, motoDataPtr);
+      FreeNativeVector3(povitPtr);
+      FreeNativeVector3(axisPtr);
+      Marshal.FreeHGlobal(breakablePtr);
+      Marshal.FreeHGlobal(motoDataPtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public IntPtr CreateCogWheelConstraint(IntPtr body, IntPtr otherBody, Vector3 rotationPivotA, Vector3 rotationAxisA, float radiusA, Vector3 rotationPivotB, Vector3 rotationAxisB, float radiusB, sConstraintBreakData breakable) {
+      if (_CreateCogWheelConstraint == null)
+        throw new ApiNotFoundException("CreateCogWheelConstraint");
+
+      var rotationPivotAPtr = Vector3ToNative3(rotationPivotA);
+      var rotationAxisAPtr = Vector3ToNative3(rotationAxisA);
+      var rotationPivotBPtr = Vector3ToNative3(rotationPivotB);
+      var rotationAxisBPtr = Vector3ToNative3(rotationAxisB);
+      var breakablePtr = ConstraintBreakDataToNative(breakable);
+      var rs = _CreateCogWheelConstraint(body, otherBody, rotationPivotAPtr, rotationAxisAPtr, radiusA, rotationPivotBPtr, rotationAxisBPtr, radiusB, breakablePtr);
+      FreeNativeVector3(rotationPivotAPtr);
+      FreeNativeVector3(rotationAxisAPtr);
+      FreeNativeVector3(rotationPivotBPtr);
+      FreeNativeVector3(rotationAxisBPtr);
+      Marshal.FreeHGlobal(breakablePtr);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+
+    public int GetRigidBodyId(IntPtr body) {
+      if (_GetRigidBodyId == null)
+        throw new ApiNotFoundException("GetRigidBodyId");
+
+      var rs = _GetRigidBodyId(body);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
+    public int GetConstraintId(IntPtr body) {
+      if (_GetConstraintId == null)
+        throw new ApiNotFoundException("GetConstraintId");
+
+      var rs = _GetConstraintId(body);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+
+      return rs;
+    }
     public void SetConstraintBroken(IntPtr constraint, bool broken, float force) {
       if (_SetConstraintBroken == null)
         throw new ApiNotFoundException("_SetConstraintBroken");
 
-      _SetConstraintBroken(constraint, broken, force);
+      _SetConstraintBroken(constraint, BoolToInt(broken), force);
+
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+    public void SetConstraintEnable(IntPtr constraint, bool enable) {
+      if (_SetConstraintEnable == null)
+        throw new ApiNotFoundException("SetConstraintEnable");
+
+      _SetConstraintEnable(constraint, BoolToInt(enable));
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
@@ -527,167 +822,6 @@ namespace PhyicsRT
         throw new ApiNotFoundException("IsConstraintBroken");
 
       var rs = _IsConstraintBroken(constraint) > 0;
-
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
-
-      return rs;
-    }
-    public IntPtr CreateBallAndSocketConstraint(IntPtr body, IntPtr otherBody, Vector3 povit, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
-      if (_CreateBallAndSocketConstraint == null)
-        throw new ApiNotFoundException("CreateBallAndSocketConstraint");
-
-      var povitPtr = Vector3ToNative3(povit);
-      var rs = _CreateBallAndSocketConstraint(body, otherBody, povitPtr, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
-      FreeNativeVector3(povitPtr);
-
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
-
-      return rs;
-    }
-    public IntPtr CreateFixedConstraint(IntPtr body, IntPtr otherBody, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
-      if (_CreateFixedConstraint == null)
-        throw new ApiNotFoundException("CreateFixedConstraint");
-
-      var rs = _CreateFixedConstraint(body, otherBody, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
-
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
-
-      return rs;
-    }
-    public IntPtr CreateStiffSpringConstraint(IntPtr body, IntPtr otherBody, Vector3 povitAW, Vector3 povitBW, float springMin, float springMax, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
-      if (_CreateStiffSpringConstraint == null)
-        throw new ApiNotFoundException("CreateStiffSpringConstraint");
-
-      var povitAWPtr = Vector3ToNative3(povitAW);
-      var povitBWPtr = Vector3ToNative3(povitBW);
-      var rs = _CreateStiffSpringConstraint(body, otherBody, povitAWPtr, povitBWPtr, springMin, springMax, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
-      FreeNativeVector3(povitAWPtr);
-      FreeNativeVector3(povitBWPtr);
-
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
-
-      return rs;
-    }
-    public IntPtr CreateHingeConstraint(IntPtr body, IntPtr otherBody, Vector3 povit, Vector3 axis, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
-      if (_CreateHingeConstraint == null)
-        throw new ApiNotFoundException("CreateHingeConstraint");
-
-      var povitPtr = Vector3ToNative3(povit);
-      var axisPtr = Vector3ToNative3(axis);
-      var rs = _CreateHingeConstraint(body, otherBody, povitPtr, axisPtr, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
-      FreeNativeVector3(povitPtr);
-      FreeNativeVector3(axisPtr);
-
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
-
-      return rs;
-    }
-    public IntPtr CreateLimitedHingeConstraint(IntPtr body, IntPtr otherBody, Vector3 povit, Vector3 axis, float agularLimitMin, float agularLimitMax, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
-      if (_CreateLimitedHingeConstraint == null)
-        throw new ApiNotFoundException("CreateLimitedHingeConstraint");
-
-      var povitPtr = Vector3ToNative3(povit);
-      var axisPtr = Vector3ToNative3(povit);
-      var rs = _CreateLimitedHingeConstraint(body, otherBody, povitPtr, axisPtr, agularLimitMin, agularLimitMax, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
-      FreeNativeVector3(povitPtr);
-      FreeNativeVector3(axisPtr);
-
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
-
-      return rs;
-    }
-    public IntPtr CreateWheelConstraint(IntPtr wheelRigidBody, IntPtr chassis, Vector3 axle, Vector3 suspension, Vector3 steering, float suspensionLimitMin, float suspensionLimitMax, float suspensionStrength, float suspensionDamping, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
-      if (_CreateWheelConstraint == null)
-        throw new ApiNotFoundException("CreateWheelConstraint");
-
-      var axlePtr = Vector3ToNative3(axle);
-      var suspensionPtr = Vector3ToNative3(suspension);
-      var steeringPtr = Vector3ToNative3(steering);
-      var rs = _CreateWheelConstraint(wheelRigidBody, chassis, axlePtr, suspensionPtr, steeringPtr, suspensionLimitMin, suspensionLimitMax, suspensionStrength, suspensionDamping, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
-      FreeNativeVector3(axlePtr);
-      FreeNativeVector3(suspensionPtr);
-      FreeNativeVector3(steeringPtr);
-
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
-
-      return rs;
-    }
-    public IntPtr CreatePulleyConstraint(IntPtr body, IntPtr otherBody, Vector3 bodyPivot0, Vector3 bodyPivots1, Vector3 worldPivots0, Vector3 worldPivots1, float leverageRatio, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
-      if (_CreatePulleyConstraint == null)
-        throw new ApiNotFoundException("CreatePulleyConstraint");
-
-      var bodyPivot0Ptr = Vector3ToNative3(bodyPivot0);
-      var bodyPivots1Ptr = Vector3ToNative3(bodyPivots1);
-      var worldPivots0Ptr = Vector3ToNative3(worldPivots0);
-      var worldPivots1Ptr = Vector3ToNative3(worldPivots1);
-      var rs = _CreatePulleyConstraint(body, otherBody, bodyPivot0Ptr, bodyPivots1Ptr, worldPivots0Ptr, worldPivots1Ptr, leverageRatio, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
-      FreeNativeVector3(bodyPivot0Ptr);
-      FreeNativeVector3(bodyPivots1Ptr);
-      FreeNativeVector3(worldPivots0Ptr);
-      FreeNativeVector3(worldPivots1Ptr);
-
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
-
-      return rs;
-    }
-    public IntPtr CreatePrismaticConstraint(IntPtr body, IntPtr otherBody, Vector3 povit, Vector3 axis, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
-      if (_CreatePrismaticConstraint == null)
-        throw new ApiNotFoundException("CreatePrismaticConstraint");
-
-      var povitPtr = Vector3ToNative3(povit);
-      var axisPtr = Vector3ToNative3(axis);
-      var rs = _CreatePrismaticConstraint(body, otherBody, povitPtr, axisPtr, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
-      FreeNativeVector3(povitPtr);
-      FreeNativeVector3(axisPtr);
-
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
-
-      return rs;
-    }
-    public IntPtr CreateCogWheelConstraint(IntPtr body, IntPtr otherBody, Vector3 rotationPivotA, Vector3 rotationAxisA, float radiusA, Vector3 rotationPivotB, Vector3 rotationAxisB, float radiusB, bool breakable, float threshold, float maximumAngularImpulse, float maximumLinearImpulse) {
-      if (_CreateCogWheelConstraint == null)
-        throw new ApiNotFoundException("CreateCogWheelConstraint");
-
-      var rotationPivotAPtr = Vector3ToNative3(rotationPivotA);
-      var rotationAxisAPtr = Vector3ToNative3(rotationAxisA);
-      var rotationPivotBPtr = Vector3ToNative3(rotationPivotB);
-      var rotationAxisBPtr = Vector3ToNative3(rotationAxisB);
-      var rs = _CreateCogWheelConstraint(body, otherBody, rotationPivotAPtr, rotationAxisAPtr, radiusA, rotationPivotBPtr, rotationAxisBPtr, radiusB, BoolToInt(breakable), threshold, maximumAngularImpulse, maximumLinearImpulse);
-      FreeNativeVector3(rotationPivotAPtr);
-      FreeNativeVector3(rotationAxisAPtr);
-      FreeNativeVector3(rotationPivotBPtr);
-      FreeNativeVector3(rotationAxisBPtr);
-
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
-
-      return rs;
-    }
-
-    public int GetRigidBodyId(IntPtr body) {
-      if (_GetRigidBodyId == null)
-        throw new ApiNotFoundException("GetRigidBodyId");
-
-      var rs = _GetRigidBodyId(body);
 
       var exp = PhysicsApi.checkException();
       if (exp != null)
@@ -1519,7 +1653,7 @@ namespace PhyicsRT
     }
     public IntPtr CreatePhysicsWorld(Vector3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance,
       bool bContinuous, bool bVisualDebugger, uint layerMask, uint[] layerToMask,
-      fnOnConstraintBreakingCallback onConstraintBreakingCallback, fnOnBodyTriggerEnterCallback onBodyTriggerEnterCallback, fnOnBodyTriggerLeaveCallback onBodyTriggerLeaveCallback)
+      fnOnConstraintBreakingCallback onConstraintBreakingCallback, fnOnBodyTriggerEventCallback onBodyTriggerEnterCallback, fnOnBodyTriggerEventCallback onBodyTriggerLeaveCallback)
     {
       if (_CreatePhysicsWorld == null)
         throw new ApiNotFoundException("CreatePhysicsWorld");

@@ -271,6 +271,8 @@ hkMatrix3 Matrix4TohkMatrix3(const spMatrix4 mat) {
 
 extern void setBuildUUID(char* uuid);
 
+int GetNativeVersion() { return 2301; }
+
 void InitSmallPool() {
 	for (int i = 0; i < initStruct.smallPoolSize && i < 512; i++) {
 		smallPoolSpTransform.push_back(new sTransform());
@@ -373,8 +375,12 @@ void InitFunctions()
 	apiArray[i++] = IsConstraintBroken;
 	apiArray[i++] = SetConstraintBroken;
 	apiArray[i++] = GetRigidBodyId;
+	apiArray[i++] = GetConstraintId;
+	apiArray[i++] = SetConstraintEnable;
+	apiArray[i++] = PhysicsWorldRayCastBody;
+	apiArray[i++] = PhysicsWorldRayCastHit;
 
-
+	apiArray[254] = GetNativeVersion;
 	apiArray[255] = setBuildUUID;
 }
 
@@ -398,3 +404,4 @@ void DestroySmallPool() {
 	smallPoolSpVec4.clear();
 	smallPoolSpVec3.clear();
 }
+

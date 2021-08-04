@@ -121,16 +121,18 @@ sPhysicsRigidbody* CreateRigidBody(sPhysicsWorld* world, sPhysicsShape* shape, s
 		}
 	}
 
+	sPhysicsRigidbody* body = new sPhysicsRigidbody();
 	hkpRigidBody* newRigidBody = new hkpRigidBody(info);
 
 	if (initStruct.mulithread) world->physicsWorld->markForWrite();
 	world->physicsWorld->addEntity(newRigidBody, active ? HK_ENTITY_ACTIVATION_DO_ACTIVATE : HK_ENTITY_ACTIVATION_DO_NOT_ACTIVATE);
 	if (layer >= 0 && layer < 32)
 		newRigidBody->setCollisionFilterInfo(hkpGroupFilter::calcFilterInfo(layer));
+	newRigidBody->setUserData((hkUlong)body);
 	newRigidBody->removeReference();
+
 	if (initStruct.mulithread) world->physicsWorld->unmarkForWrite();
 
-	sPhysicsRigidbody* body = new sPhysicsRigidbody();
 	body->rigidBody = newRigidBody;
 	body->active = active;
 	body->world = world;

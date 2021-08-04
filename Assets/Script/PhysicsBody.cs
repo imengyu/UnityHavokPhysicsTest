@@ -1,6 +1,8 @@
 
 using PhyicsRT.Utils;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace PhyicsRT
@@ -99,6 +101,7 @@ namespace PhyicsRT
     [AddComponentMenu("PhysicsRT/Physics Body")]
     [DefaultExecutionOrder(250)]
     [DisallowMultipleComponent]
+    [RequireComponent(typeof(PhysicsShape))]
     public class PhysicsBody : MonoBehaviour, LinkedListItem<PhysicsBody>
     {
         const float MinimumMass = 0.001f;
@@ -159,9 +162,19 @@ namespace PhyicsRT
         [SerializeField]
         [Tooltip("The maximum linear velocity of the body (in m/s).")]
         private float m_MaxLinearVelocity = 200;
+        [SerializeField]
+        [Tooltip("Is this body is Tigger ?")]
+        private bool m_IsTigger = false;
+        [Tooltip("在 Awake 时不自动创建刚体，设置为 false 后您需要手动调用 ForceReCreateShape 来创建刚体")]
+        [SerializeField]
+        public bool m_DoNotAutoCreateAtAwake = false;
 
         private IntPtr ptr = IntPtr.Zero;
 
+        /// <summary>
+        /// 在 Awake 时不自动创建刚体，设置为 false 后您需要手动调用 ForceReCreateShape 来创建刚体
+        /// </summary>
+        public bool DoNotAutoCreateAtAwake { get => m_DoNotAutoCreateAtAwake; set { m_DoNotAutoCreateAtAwake = value; } }
         /// <summary>
         /// 获取或设置刚体碰撞层
         /// </summary>
@@ -228,6 +241,10 @@ namespace PhyicsRT
         /// 获取或设置刚体的自定义标签
         /// </summary>
         public CustomPhysicsBodyTags CustomTags { get => m_CustomTags; set { m_CustomTags = value; } }
+        /// <summary>
+        /// 获取或设置刚体是否是触发器，触发器才可以接受碰撞事件（创建刚体后设置无效）
+        /// </summary>
+        public bool IsTigger { get => m_IsTigger; set { m_IsTigger = value; } }
         /// <summary>
         /// 获取或设置刚体的质心
         /// </summary>
@@ -341,10 +358,15 @@ namespace PhyicsRT
 
         private void Awake() {
             CurrentPhysicsWorld = PhysicsWorld.GetCurrentScensePhysicsWorld();
-            CreateBody();
+            StartCoroutine(LateCreate());
         }
         private void OnDestroy() {
             DestroyBody();
+        }
+        private IEnumerator LateCreate() {
+            yield return new WaitForSeconds(0.2f); 
+            if(!m_DoNotAutoCreateAtAwake)
+                CreateBody();
         }
 
         private void OnEnable()
@@ -363,7 +385,7 @@ namespace PhyicsRT
             m_LinearDamping = Mathf.Max(m_LinearDamping, 0f);
             m_AngularDamping = Mathf.Max(m_AngularDamping, 0f);
         }
-        
+
         private PhysicsWorld CurrentPhysicsWorld = null;
         private IntPtr currentShapeMassProperties = IntPtr.Zero;
         private bool nextCreateForce = false;
@@ -520,7 +542,7 @@ namespace PhyicsRT
         /// 同步位置
         /// </summary>
         public void UpdatePositionToPhysicsEngine() {
-             if(ptr != IntPtr.Zero)
+            if(ptr != IntPtr.Zero)
                 PhysicsApi.API.SetRigidBodyPosition(ptr, transform.position);
         }
 
@@ -604,26 +626,38 @@ namespace PhyicsRT
             }
         }
     
-        public void ApplyForce(IntPtr body, Vector3 force) {
+        public void ApplyForce(Vector3 force) {
             if(ptr != IntPtr.Zero)
                 PhysicsApi.API.RigidBodyApplyForce(ptr, Time.deltaTime, force);
         }
-        public void ApplyForceAtPoint(IntPtr body, Vector3 force, Vector3 point) {
+        public void ApplyForceAtPoint(Vector3 force, Vector3 point) {
             if(ptr != IntPtr.Zero)
                 PhysicsApi.API.RigidBodyApplyForceAtPoint(ptr, Time.deltaTime, force, point);
         }
-        public void ApplyTorque(IntPtr body, Vector3 torque) {
+        public void ApplyTorque(Vector3 torque) {
             if(ptr != IntPtr.Zero)
                 PhysicsApi.API.RigidBodyApplyTorque(ptr, Time.deltaTime, torque);
         }
-        public void ApplyLinearImpulse(IntPtr body, Vector3 imp) {
+        public void ApplyLinearImpulse(Vector3 imp) {
             if(ptr != IntPtr.Zero)
                 PhysicsApi.API.RigidBodyApplyLinearImpulse(ptr, imp);
         }
-        public void ApplyPointImpulse(IntPtr body, Vector3 imp, Vector3 point) {
+        public void ApplyPointImpulse(Vector3 imp, Vector3 point) {
             if(ptr != IntPtr.Zero)
                 PhysicsApi.API.RigidBodyApplyPointImpulse(ptr, imp, point);
         }
+    
+    
+        public delegate void OnBodyTriggerCollCallback(PhysicsBody body, PhysicsBody other);
+
+        /// <summary>
+        /// 刚体进入时的事件（为Tigger时有效）
+        /// </summary>
+        public OnBodyTriggerCollCallback onCollisionEnter;
+        /// <summary>
+        /// 刚体离开时的事件（为Tigger时有效）
+        /// </summary>
+        public OnBodyTriggerCollCallback onCollisionLeave;
     }
     public class PhysicsBodyNotCreateException : Exception {
         public PhysicsBodyNotCreateException() : base("Body is not created yet.") {}

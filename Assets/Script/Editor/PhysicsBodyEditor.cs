@@ -36,6 +36,8 @@ class PhysicsBodyEditor : Editor
         pFriction = serializedObject.FindProperty("m_Friction");
         pRestitution = serializedObject.FindProperty("m_Restitution");
         pLayer = serializedObject.FindProperty("m_Layer");
+        pTigger = serializedObject.FindProperty("m_IsTigger");
+        pDoNotAutoCreateAtAwake = serializedObject.FindProperty("m_DoNotAutoCreateAtAwake");
 
         var names = AssetDatabase.LoadAssetAtPath<PhysicsLayerNames>("Assets/Resources/PhysicsLayerNames.asset");
         var tags = PhysicsLayerTags.Everything;
@@ -61,7 +63,8 @@ class PhysicsBodyEditor : Editor
     private SerializedProperty pFriction;
     private SerializedProperty pRestitution;
     private SerializedProperty pLayer;
-
+    private SerializedProperty pTigger;
+    private SerializedProperty pDoNotAutoCreateAtAwake;
 
     public override void OnInspectorGUI()
     {
@@ -78,13 +81,16 @@ class PhysicsBodyEditor : Editor
 
         EditorGUI.BeginDisabledGroup(EditorApplication.isPlaying);
 
+        EditorGUILayout.PropertyField(pDoNotAutoCreateAtAwake);
         EditorGUILayout.PropertyField(pCollidableQualityType);
         EditorGUILayout.PropertyField(pInitialLinearVelocity);
         EditorGUILayout.PropertyField(pInitialAngularVelocity);
         EditorGUILayout.PropertyField(pCustomTags);
+        EditorGUILayout.PropertyField(pTigger);
+        EditorGUILayout.PropertyField(pTigger);
 
         EditorGUI.EndDisabledGroup();
-
+        
         EditorGUILayout.PropertyField(pMass);
         EditorGUILayout.PropertyField(pCenterOfMass);
         EditorGUILayout.PropertyField(pLinearDamping);

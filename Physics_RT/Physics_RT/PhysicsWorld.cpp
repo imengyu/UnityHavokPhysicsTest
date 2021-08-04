@@ -2,6 +2,8 @@
 #include "PhysicsFunctions.h"
 #include "Utils.h"
 #include <list>
+#include <Physics2012/Collide/Query/Collector/RayCollector/hkpAllRayHitCollector.h> 
+#include <Physics2012/Collide/Query/Collector/RayCollector/hkpClosestRayHitCollector.h> 
 
 extern hkJobQueue* jobQueue;
 extern hkJobThreadPool* threadPool;
@@ -112,6 +114,7 @@ sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, floa
 			filter->enableCollisionsUsingBitfield(1 << i, layerToMask[i]);
 	}
 
+	physicsWorld->addC
 	physicsWorld->setCollisionFilter(filter, true);
 	filter->removeReference();
 
@@ -254,6 +257,102 @@ int ReadPhysicsWorldBodys(sPhysicsWorld* world, float *buffer, int count)
 		world->bodyCurrentIndex++;
 	}
 	return world->bodyList.getSize() - world->bodyCurrentIndex;
+
+	TRY_END(0)
+}
+
+void SetRayCastResult(sRayCastResult* rs, hkpWorldRayCastInput &ray, const hkpWorldRayCastOutput &result) {
+	hkpRigidBody* rb = hkpGetRigidBody(result.m_rootCollidable);
+	rs->body = (sPhysicsRigidbody*)rb->getUserData();
+	rs->hitFraction = result.m_hitFraction;
+
+	hkVector4 position; position.setInterpolate4(ray.m_from, ray.m_to, result.m_hitFraction);
+	rs->pos[0] = position.getComponent<0>();
+	rs->pos[1] = position.getComponent<1>();
+	rs->pos[2] = position.getComponent<2>();
+
+	rs->normal[0] = result.m_normal.getComponent<0>();
+	rs->normal[1] = result.m_normal.getComponent<1>();
+	rs->normal[2] = result.m_normal.getComponent<2>();
+	rs->bodyId = rs->body->id;
+}
+int PhysicsWorldRayCastBody(sPhysicsWorld* world, spVec3 from, spVec3 to, int rayLayer, sRayCastResult** outResult) {
+	TRY_BEGIN
+	CHECK_PARAM_PTR(world)
+
+	hkpWorldRayCastInput ray;
+	ray.m_from = Vec3TohkVec4(from);
+	ray.m_to = Vec3TohkVec4(to);
+	if (rayLayer >= 0) {
+		ray.m_enableShapeCollectionFilter = true;
+		ray.m_filterInfo = hkpGroupFilter::calcFilterInfo(rayLayer);
+	}
+	hkpWorldRayCastOutput result;
+	sRayCastResult* rs = new sRayCastResult();
+	world->physicsWorld->castRay(ray, result);
+
+	if (result.hasHit())
+	{
+		SetRayCastResult(rs, ray, result);
+		*outResult = rs; 
+		return 1;
+	}
+	return 0;
+
+	TRY_END(0)
+}
+int PhysicsWorldRayCastHit(sPhysicsWorld* world, spVec3 from, spVec3 to, int rayLayer, int castAll, sRayCastResult** outResult) {
+	TRY_BEGIN
+	CHECK_PARAM_PTR(world)
+
+	hkpWorldRayCastInput ray;
+	ray.m_from = Vec3TohkVec4(from);
+	ray.m_to = Vec3TohkVec4(to);
+	if (rayLayer >= 0) {
+		ray.m_enableShapeCollectionFilter = true;
+		ray.m_filterInfo = hkpGroupFilter::calcFilterInfo(rayLayer);
+	}
+
+	if (castAll) {
+		hkpAllRayHitCollector collector;
+		world->physicsWorld->castRay(ray, collector);
+
+		auto &hits = collector.getHits();
+		if (hits.getSize() > 0)
+		{
+			sRayCastResult** rs = new sRayCastResult*[hits.getSize()];
+
+			int i = 0;
+			for (auto it = hits.begin(); it != hits.end(); it++, i++) {
+				auto result = *it;
+				hkpRigidBody* rb = hkpGetRigidBody(result.m_rootCollidable);
+				SetRayCastResult(rs[i], ray, result);
+			}
+
+			*outResult = (sRayCastResult*)rs;
+			return hits.getSize();
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	else {
+		hkpClosestRayHitCollector collector;
+		world->physicsWorld->castRay(ray, collector);
+
+		const hkBool didHit = collector.hasHit();
+		if (didHit)
+		{
+			const hkpWorldRayCastOutput& result = collector.getHit();
+			sRayCastResult* rs = new sRayCastResult();
+			SetRayCastResult(rs, ray, result);
+			*outResult = rs;
+
+			return 1;
+		}
+	}
+	return 0;
 
 	TRY_END(0)
 }

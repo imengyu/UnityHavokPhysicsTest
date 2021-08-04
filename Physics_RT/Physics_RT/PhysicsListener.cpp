@@ -10,7 +10,7 @@ void MyBreakableListener::constraintBreakingCallback(hkpBreakableConstraintEvent
 {
     if (world->callbacks.onConstraintBreakingCallback) {
         auto s = (sPhysicsConstraints*)event.m_constraintInstance->getUserData();
-        world->callbacks.onConstraintBreakingCallback(s, event.m_forceMagnitude, event.m_removed);
+        world->callbacks.onConstraintBreakingCallback(s, s->id, event.m_forceMagnitude, event.m_removed);
     }
 }
 
@@ -25,14 +25,14 @@ void MyTriggerVolume::triggerEventCallback(hkpRigidBody* otherBody, EventType ty
     {
         if (world->callbacks.onBodyTriggerEnterCallback) {
             auto sotherBody = (sPhysicsRigidbody*)otherBody->getUserData();
-            world->callbacks.onBodyTriggerEnterCallback(body, sotherBody, body->id, otherBody->id);
+            world->callbacks.onBodyTriggerEnterCallback(body, sotherBody, body->id, sotherBody->id);
         }
     }
     if (type & LEFT_EVENT)
     {
         if (world->callbacks.onBodyTriggerLeaveCallback) {
             auto sotherBody = (sPhysicsRigidbody*)otherBody->getUserData();
-            world->callbacks.onBodyTriggerLeaveCallback(body, sotherBody, body->id, otherBody->id);
+            world->callbacks.onBodyTriggerLeaveCallback(body, sotherBody, body->id, sotherBody->id);
         }
     }
 }

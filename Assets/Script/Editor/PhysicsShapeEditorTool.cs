@@ -213,7 +213,7 @@ public class PhysicsShapeEditorTool : EditorTool
     }
 
     public void SchedulePreviewIfChanged(PhysicsShape shape) {
-      if(lastGenerateMesh != shape.ShapeMesh || lastGenerateMeshConvexRadius != shape.ShapeConvexRadius || lastGenerateMeshShapeType != shape.ShapeType) {
+      if(shape.ShapeMesh != null && (lastGenerateMesh != shape.ShapeMesh || lastGenerateMeshConvexRadius != shape.ShapeConvexRadius || lastGenerateMeshShapeType != shape.ShapeType)) {
         lastGenerateMesh = shape.ShapeMesh;
         lastGenerateMeshConvexRadius = shape.ShapeConvexRadius;
         lastGenerateMeshShapeType = shape.ShapeType;

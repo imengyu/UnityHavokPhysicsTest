@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-namespace PhyicsRT
+namespace PhysicsRT
 {
     public static class PhysicsApi
     {

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using PhyicsRT;
+using PhysicsRT;
 using Unity.Mathematics;
 using Unity.Physics.Editor;
 using UnityEditor;
@@ -319,6 +319,7 @@ class PhysicsShapeEditor : Editor
             case ShapeType.ConvexHull:
             case ShapeType.Mesh:
                 pShapeMesh.objectReferenceValue = EditorGUILayout.ObjectField("Mesh", pShapeMesh.objectReferenceValue, typeof(Mesh), false);
+                pShapeConvexRadius.floatValue = EditorGUILayout.FloatField("Convex radius", pShapeConvexRadius.floatValue);
                 break;
         }
     }

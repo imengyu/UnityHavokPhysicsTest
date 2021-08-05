@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace PhyicsRT
+namespace PhysicsRT
 {
     [InitializeOnLoad]
     public class PhysicsSystemInitEditor

@@ -10,7 +10,9 @@ enum ePhysicsShapeType : UINT16 {
 	TriangleShape,
 	ConvexVerticesShape,
 	ConvexTranslateShape,
-	ConvexTransformShape,
+	ConvexTransformShape, 
+	MeshShape,
+	ExtendedMeshShape,
 	ListShape,
 	StaticCompoundShape,
 };
@@ -36,7 +38,7 @@ sPhysicsShape* CreateCylindeShape(spVec3 start, spVec3 end, float radius, float 
 sPhysicsShape* CreateTriangleShape(spVec3 v0, spVec3 v1, spVec3 v2);
 sPhysicsShape* CreateConvexVerticesShape(float* vertices, int numVertices, float convexRadius);
 sPhysicsShape* CreateConvexVerticesShapeByConvexHullResult(sConvexHullResult* result, float convexRadius);
-
+sPhysicsShape* CreateSimpleMeshShape(float* vertices, int numVertices, int* triangles, int numTriangles, float convexRadius);
 sPhysicsShape* CreateConvexTranslateShape(sPhysicsShape* child, spVec3 translation);
 sPhysicsShape* CreateConvexTransformShape(sPhysicsShape* child, spTransform transform);
 sPhysicsShape* CreateListShape(sPhysicsShape** childs, int childCount);

@@ -62,6 +62,8 @@ void CommonDelete(const void* ptr);
 
 #define M_PI       3.1415926535f   // pi
 
+hkVector4 F3TohkVec4(float x, float y, float z);
+void hkVec4ToF3(float* p, hkVector4 &v);
 hkVector4 Vec3TohkVec4(const spVec3 vec3);
 hkVector4 Vec4TohkVec4(const spVec4 vec4);
 hkQuaternion Vec4TohkQuaternion(const spVec4 vec4);

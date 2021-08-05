@@ -3,15 +3,25 @@
 #include "PhysicsCommon.h"
 #include "SimpleLinkedList.hpp"
 
+struct sPhysicsBodyContactData {
+	float distance;
+	float pos[3];
+	float normal[3];
+	float separatingNormal[3];
+	float separatingVelocity;
+};
+
 typedef void(__cdecl* fnOnConstraintBreakingCallback)(struct sPhysicsConstraints* constraint, int id, float forceMagnitude, int removed);
-typedef void(__cdecl* fnOnBodyTriggerEnterCallback)(struct sPhysicsRigidbody* body, struct sPhysicsRigidbody* bodyOther, int id, int otherId);
-typedef void(__cdecl* fnOnBodyTriggerLeaveCallback)(struct sPhysicsRigidbody* body, struct sPhysicsRigidbody* bodyOther, int id, int otherId);
+typedef void(__cdecl* fnOnBodyTriggerEventCallback)(struct sPhysicsRigidbody* body, struct sPhysicsRigidbody* bodyOther, int id, int otherId, int type);
+typedef void(__cdecl* fnOnBodyContactEventCallback)(struct sPhysicsRigidbody* body, struct sPhysicsRigidbody* bodyOther, int id, int otherId, sPhysicsBodyContactData *data);
 
 struct sPhysicsWorldCallbacks {
 	fnOnConstraintBreakingCallback onConstraintBreakingCallback;
-	fnOnBodyTriggerEnterCallback onBodyTriggerEnterCallback;
-	fnOnBodyTriggerLeaveCallback onBodyTriggerLeaveCallback;
+	fnOnBodyTriggerEventCallback onBodyTriggerEeventCallback;
+	fnOnBodyContactEventCallback onBodyContactEventCallback;
 };
+
+
 
 struct sPhysicsWorld {
 	hkpWorld* physicsWorld;
@@ -36,7 +46,8 @@ struct sRayCastResult {
 
 sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance,
 	bool bContinuous, bool bVisualDebugger, unsigned int layerMask, unsigned int* layerToMask,
-	fnOnConstraintBreakingCallback onConstraintBreakingCallback, fnOnBodyTriggerEnterCallback onBodyTriggerEnterCallback, fnOnBodyTriggerLeaveCallback onBodyTriggerLeaveCallback);
+	fnOnConstraintBreakingCallback onConstraintBreakingCallback, fnOnBodyTriggerEventCallback onBodyTriggerEventCallback, 
+	fnOnBodyContactEventCallback onBodyContactEventCallback);
 void DestroyPhysicsWorld(sPhysicsWorld* world);
 void StepPhysicsWorld(sPhysicsWorld* world, float timestep);
 void SetPhysicsWorldGravity(sPhysicsWorld* world, spVec3 gravity);

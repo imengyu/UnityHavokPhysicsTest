@@ -3,7 +3,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-namespace PhyicsRT
+namespace PhysicsRT
 {
   #region 函数定义
 
@@ -28,7 +28,7 @@ namespace PhyicsRT
   public delegate IntPtr fnCreateRigidBody(
       IntPtr world,
       IntPtr shape, IntPtr position, IntPtr rot,
-      int motionType, int qualityType, float friction, float restitution, float mass, int active, int layer,
+      int motionType, int qualityType, float friction, float restitution, float mass, int active, int layer, int isTiggerVolume, int addContactListener,
       float gravityFactor, float linearDamping, float angularDamping, IntPtr centerOfMass, IntPtr inertiaTensor,
       IntPtr linearVelocity, IntPtr angularVelocity, float maxLinearVelocity, float maxAngularVelocity, IntPtr massProperties);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -115,7 +115,7 @@ namespace PhyicsRT
   public delegate IntPtr fnCreatePhysicsWorld(IntPtr gravity,
       int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance,
       bool bContinuous, bool bVisualDebugger, uint layerMask, IntPtr layerToMask,
-      IntPtr onConstraintBreakingCallback, IntPtr onBodyTriggerEnterCallback, IntPtr onBodyTriggerLeaveCallback);
+      IntPtr onConstraintBreakingCallback, IntPtr onBodyTriggerEventCallback, IntPtr onBodyContactEventCallback);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate void fnDestroyPhysicsWorld(IntPtr world);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -171,7 +171,7 @@ namespace PhyicsRT
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate IntPtr fnCreateLimitedHingeConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, IntPtr axis, float agularLimitMin, float agularLimitMax, IntPtr breakable, IntPtr motorData);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate IntPtr fnCreateWheelConstraint(IntPtr wheelRigidBody, IntPtr chassis, IntPtr axle, IntPtr suspension, IntPtr steering, float suspensionLimitMin, float suspensionLimitMax, float suspensionStrength, float suspensionDamping, IntPtr breakable);
+  public delegate IntPtr fnCreateWheelConstraint(IntPtr wheelRigidBody, IntPtr chassis, IntPtr povit, IntPtr axle, IntPtr suspension, IntPtr steering, float suspensionLimitMin, float suspensionLimitMax, float suspensionStrength, float suspensionDamping, IntPtr breakable);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate IntPtr fnCreatePulleyConstraint(IntPtr body, IntPtr otherBody, IntPtr bodyPivot0, IntPtr bodyPivots1, IntPtr worldPivots0, IntPtr worldPivots1, float leverageRatio, IntPtr breakable);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -206,6 +206,8 @@ namespace PhyicsRT
   public delegate int fnPhysicsWorldRayCastHit(IntPtr world, IntPtr from, IntPtr to, int rayLayer, int castAll, IntPtr outResult);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate int fnGetVersion();
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate IntPtr fnCreateSimpleMeshShape(IntPtr vertices, int numVertices, IntPtr triangles, int numTriangles, float convexRadius);
     
   /// Return Type: void
   ///constraint: sPhysicsConstraints*
@@ -214,7 +216,9 @@ namespace PhyicsRT
   [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
   public delegate void fnOnConstraintBreakingCallback(IntPtr constraint, int id, float forceMagnitude, int removed);
   [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-  public delegate void fnOnBodyTriggerEventCallback(IntPtr body, IntPtr bodyOther, int id, int otherId);
+  public delegate void fnOnBodyTriggerEventCallback(IntPtr body, IntPtr bodyOther, int id, int otherId, int type);
+  [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
+  public delegate void fnOnBodyContactEventCallback(IntPtr body, IntPtr bodyOther, int id, int otherId, IntPtr data);
 
   #endregion
 
@@ -234,6 +238,7 @@ namespace PhyicsRT
   public class ApiStruct
   {
     public const int Version = 2301;
+    public bool InitSuccess { get; private set; } = false;
 
     //获取所有函数指针
     internal void initAll(IntPtr apiArrayPtr, int len)
@@ -293,6 +298,7 @@ namespace PhyicsRT
       _CreateTriangleShape = Marshal.GetDelegateForFunctionPointer<fnCreateTriangleShape>(apiArray[i++]);
       _CreateConvexVerticesShape = Marshal.GetDelegateForFunctionPointer<fnCreateConvexVerticesShape>(apiArray[i++]);
       _CreateConvexVerticesShapeByConvexHullResult = Marshal.GetDelegateForFunctionPointer<fnCreateConvexVerticesShapeByConvexHullResult>(apiArray[i++]);
+      _CreateSimpleMeshShape = Marshal.GetDelegateForFunctionPointer<fnCreateSimpleMeshShape>(apiArray[i++]);
       _CreateConvexTranslateShape = Marshal.GetDelegateForFunctionPointer<fnCreateConvexTranslateShape>(apiArray[i++]);
       _CreateConvexTransformShape = Marshal.GetDelegateForFunctionPointer<fnCreateConvexTransformShape>(apiArray[i++]);
       _CreateListShape = Marshal.GetDelegateForFunctionPointer<fnCreateListShape>(apiArray[i++]);
@@ -343,6 +349,7 @@ namespace PhyicsRT
       _PhysicsWorldRayCastBody = Marshal.GetDelegateForFunctionPointer<fnPhysicsWorldRayCastBody>(apiArray[i++]);
       _PhysicsWorldRayCastHit = Marshal.GetDelegateForFunctionPointer<fnPhysicsWorldRayCastHit>(apiArray[i++]);
 
+      InitSuccess = true;
     }
 
     private fnTestAssert _TestAssert;
@@ -391,6 +398,7 @@ namespace PhyicsRT
     private fnCreateTriangleShape _CreateTriangleShape;
     private fnCreateConvexVerticesShape _CreateConvexVerticesShape;
     private fnCreateConvexVerticesShapeByConvexHullResult _CreateConvexVerticesShapeByConvexHullResult;
+    private fnCreateSimpleMeshShape _CreateSimpleMeshShape;
     private fnCreateConvexTranslateShape _CreateConvexTranslateShape;
     private fnCreateConvexTransformShape _CreateConvexTransformShape;
     private fnCreateListShape _CreateListShape;
@@ -515,6 +523,12 @@ namespace PhyicsRT
       _DestroyTransform(a);
     }
 
+    private void ApiExceptionCheck() {
+      var exp = PhysicsApi.checkException();
+      if (exp != null)
+        throw new ApiException(exp);
+    }
+
     public int PhysicsWorldRayCastBody(IntPtr world, Vector3 from, Vector3 to, int rayLayer, out sRayCastResult outResult) {
       if (_PhysicsWorldRayCastBody == null)
         throw new ApiNotFoundException("PhysicsWorldRayCastBody");
@@ -535,9 +549,7 @@ namespace PhyicsRT
       }
       Marshal.FreeHGlobal(outPtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -573,22 +585,26 @@ namespace PhyicsRT
       }
       Marshal.FreeHGlobal(outPtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
 
     private IntPtr ConstraintBreakDataToNative(sConstraintBreakData data) {
-      IntPtr rs = Marshal.AllocHGlobal(Marshal.SizeOf(data));
-      Marshal.StructureToPtr(data, rs, false);
-      return rs;
+      if(data.breakable) {
+        IntPtr rs = Marshal.AllocHGlobal(Marshal.SizeOf(data));
+        Marshal.StructureToPtr(data, rs, false);
+        return rs;
+      }
+      return IntPtr.Zero;
     }
     private IntPtr ConstraintMotorDataToNative(sConstraintMotorData data) {
-      IntPtr rs = Marshal.AllocHGlobal(Marshal.SizeOf(data));
-      Marshal.StructureToPtr(data, rs, false);
-      return rs;
+      if(data.enable) {
+        IntPtr rs = Marshal.AllocHGlobal(Marshal.SizeOf(data));
+        Marshal.StructureToPtr(data, rs, false);
+        return rs;
+      }
+      return IntPtr.Zero;
     }
 
     public IntPtr CreateBallAndSocketConstraint(IntPtr body, IntPtr otherBody, Vector3 povit, sConstraintBreakData breakable) {
@@ -601,9 +617,7 @@ namespace PhyicsRT
       FreeNativeVector3(povitPtr);
       Marshal.FreeHGlobal(breakablePtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -615,9 +629,7 @@ namespace PhyicsRT
       var rs = _CreateFixedConstraint(body, otherBody, breakablePtr);
       Marshal.FreeHGlobal(breakablePtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -633,9 +645,7 @@ namespace PhyicsRT
       FreeNativeVector3(povitBWPtr);
       Marshal.FreeHGlobal(breakablePtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -651,9 +661,7 @@ namespace PhyicsRT
       FreeNativeVector3(axisPtr);
       Marshal.FreeHGlobal(breakablePtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -671,29 +679,27 @@ namespace PhyicsRT
       Marshal.FreeHGlobal(breakablePtr);
       Marshal.FreeHGlobal(motoDataPtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
-    public IntPtr CreateWheelConstraint(IntPtr wheelRigidBody, IntPtr chassis, Vector3 axle, Vector3 suspension, Vector3 steering, float suspensionLimitMin, float suspensionLimitMax, float suspensionStrength, float suspensionDamping, sConstraintBreakData breakable) {
+    public IntPtr CreateWheelConstraint(IntPtr wheelRigidBody, IntPtr chassis, Vector3 povit, Vector3 axle, Vector3 suspension, Vector3 steering, float suspensionLimitMin, float suspensionLimitMax, float suspensionStrength, float suspensionDamping, sConstraintBreakData breakable) {
       if (_CreateWheelConstraint == null)
         throw new ApiNotFoundException("CreateWheelConstraint");
 
+      var povitPtr = Vector3ToNative3(povit);
       var axlePtr = Vector3ToNative3(axle);
       var suspensionPtr = Vector3ToNative3(suspension);
       var steeringPtr = Vector3ToNative3(steering);
       var breakablePtr = ConstraintBreakDataToNative(breakable);
-      var rs = _CreateWheelConstraint(wheelRigidBody, chassis, axlePtr, suspensionPtr, steeringPtr, suspensionLimitMin, suspensionLimitMax, suspensionStrength, suspensionDamping, breakablePtr);
-      FreeNativeVector3(axlePtr);
+      var rs = _CreateWheelConstraint(wheelRigidBody, chassis, povitPtr, axlePtr, suspensionPtr, steeringPtr, suspensionLimitMin, suspensionLimitMax, suspensionStrength, suspensionDamping, breakablePtr);
+      FreeNativeVector3(axlePtr); 
+      FreeNativeVector3(povitPtr);
       FreeNativeVector3(suspensionPtr);
       FreeNativeVector3(steeringPtr);
       Marshal.FreeHGlobal(breakablePtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -713,9 +719,7 @@ namespace PhyicsRT
       FreeNativeVector3(worldPivots1Ptr);
       Marshal.FreeHGlobal(breakablePtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -734,9 +738,7 @@ namespace PhyicsRT
       Marshal.FreeHGlobal(breakablePtr);
       Marshal.FreeHGlobal(motoDataPtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -756,9 +758,7 @@ namespace PhyicsRT
       FreeNativeVector3(rotationAxisBPtr);
       Marshal.FreeHGlobal(breakablePtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+
 
       return rs;
     }
@@ -769,9 +769,7 @@ namespace PhyicsRT
 
       var rs = _GetRigidBodyId(body);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -781,9 +779,7 @@ namespace PhyicsRT
 
       var rs = _GetConstraintId(body);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -793,9 +789,7 @@ namespace PhyicsRT
 
       _SetConstraintBroken(constraint, BoolToInt(broken), force);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetConstraintEnable(IntPtr constraint, bool enable) {
       if (_SetConstraintEnable == null)
@@ -803,9 +797,7 @@ namespace PhyicsRT
 
       _SetConstraintEnable(constraint, BoolToInt(enable));
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void DestoryConstraints(IntPtr constraint) {
       if (_DestoryConstraints == null)
@@ -813,9 +805,7 @@ namespace PhyicsRT
 
       _DestoryConstraints(constraint);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public bool IsConstraintBroken(IntPtr constraint) {
       if (_IsConstraintBroken == null)
@@ -823,9 +813,7 @@ namespace PhyicsRT
 
       var rs = _IsConstraintBroken(constraint) > 0;
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -837,9 +825,7 @@ namespace PhyicsRT
       _SetRigidBodyInertiaTensor(body, nPtr);
       FreeNativeMatrix4x4(nPtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetRigidBodyLinearVelocity(IntPtr body, Vector3 velocity) {
       if (_SetRigidBodyLinearVelocity == null)
@@ -849,9 +835,7 @@ namespace PhyicsRT
       _SetRigidBodyLinearVelocity(body, nVelocityPtr);
       FreeNativeVector3(nVelocityPtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetRigidBodyAngularVelocity(IntPtr body, Vector3 velocity) {
       if (_SetRigidBodyAngularVelocity == null)
@@ -861,9 +845,7 @@ namespace PhyicsRT
       _SetRigidBodyAngularVelocity(body, nVelocityPtr);
       FreeNativeVector3(nVelocityPtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void RigidBodyApplyForce(IntPtr body, float delteTime, Vector3 force) {
       if (_RigidBodyApplyForce == null)
@@ -873,9 +855,7 @@ namespace PhyicsRT
       _RigidBodyApplyForce(body, delteTime, forcePtr);
       FreeNativeVector3(forcePtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void RigidBodyApplyForceAtPoint(IntPtr body, float delteTime, Vector3 force, Vector3 point) {
       if (_RigidBodyApplyForceAtPoint == null)
@@ -887,9 +867,7 @@ namespace PhyicsRT
       FreeNativeVector3(forcePtr);
       FreeNativeVector3(pointPtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void RigidBodyApplyTorque(IntPtr body, float delteTime, Vector3 torque) {
       if (_RigidBodyApplyTorque == null)
@@ -899,9 +877,7 @@ namespace PhyicsRT
       _RigidBodyApplyTorque(body, delteTime, forcePtr);
       FreeNativeVector3(forcePtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void RigidBodyApplyAngularImpulse(IntPtr body, Vector3 imp) {
       if (_RigidBodyApplyAngularImpulse == null)
@@ -911,9 +887,7 @@ namespace PhyicsRT
       _RigidBodyApplyAngularImpulse(body, forcePtr);
       FreeNativeVector3(forcePtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void RigidBodyApplyLinearImpulse(IntPtr body, Vector3 imp) {
       if (_RigidBodyApplyForce == null)
@@ -923,9 +897,7 @@ namespace PhyicsRT
       _RigidBodyApplyLinearImpulse(body, forcePtr);
       FreeNativeVector3(forcePtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void RigidBodyApplyPointImpulse(IntPtr body, Vector3 imp, Vector3 point) {
       if (_RigidBodyApplyPointImpulse == null)
@@ -937,9 +909,7 @@ namespace PhyicsRT
       FreeNativeVector3(impPtr);
       FreeNativeVector3(pointPtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void GetRigidBodyPosition(IntPtr body, out Vector3 outPos) {
       if (_GetRigidBodyPosition == null)
@@ -950,9 +920,7 @@ namespace PhyicsRT
       outPos = sVec3.FromNativeToVector3(ptr);
       FreeNativeVector3(ptr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void GetRigidBodyRotation(IntPtr body, out Vector4 outRot) {
       if (_GetRigidBodyRotation == null)
@@ -963,9 +931,7 @@ namespace PhyicsRT
       outRot = sVec4.FromNativeToVector4(ptr);
       FreeNativeVector4(ptr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void GetRigidBodyAngularVelocity(IntPtr body, out Vector3 outVelocity) {
       if (_GetRigidBodyAngularVelocity == null)
@@ -976,9 +942,7 @@ namespace PhyicsRT
       outVelocity = sVec3.FromNativeToVector3(ptr);
       FreeNativeVector3(ptr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void GetRigidBodyLinearVelocity(IntPtr body, out Vector3 outVelocity) {
       if (_GetRigidBodyLinearVelocity == null)
@@ -989,9 +953,7 @@ namespace PhyicsRT
       outVelocity = sVec3.FromNativeToVector3(ptr);
       FreeNativeVector3(ptr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void GetRigidBodyCenterOfMassInWorld(IntPtr body, out Vector3 outCenterOfMassInWorld) {
       if (_GetRigidBodyCenterOfMassInWorld == null)
@@ -1002,9 +964,7 @@ namespace PhyicsRT
       outCenterOfMassInWorld = sVec3.FromNativeToVector3(ptr);
       FreeNativeVector3(ptr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void GetRigidBodyPointVelocity(IntPtr body, Vector3 pt, out Vector3 ououtVelocity) {
       if (_GetRigidBodyPointVelocity == null)
@@ -1017,9 +977,7 @@ namespace PhyicsRT
       FreeNativeVector3(ptr);
       FreeNativeVector3(nPtPtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void RigidBodyResetCenterOfMass(IntPtr body) {
       if (_RigidBodyResetCenterOfMass == null)
@@ -1027,9 +985,7 @@ namespace PhyicsRT
 
       _RigidBodyResetCenterOfMass(body);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void RigidBodyResetInertiaTensor(IntPtr body) {
       if (_RigidBodyResetInertiaTensor == null)
@@ -1037,9 +993,7 @@ namespace PhyicsRT
 
       _RigidBodyResetInertiaTensor(body);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
 
     public void CommonDelete(IntPtr ptr)
@@ -1076,7 +1030,7 @@ namespace PhyicsRT
       _DeactiveRigidBody(ptr);
     }
     public IntPtr CreateRigidBody(IntPtr world, IntPtr shape, Vector3 position, Quaternion rot, int motionType, int qualityType, float friction, 
-      float restitution, float mass, int active, int layer, float gravityFactor, float linearDamping, float angularDamping, 
+      float restitution, float mass, int active, int layer, bool isTiggerVolume, bool addContactListener, float gravityFactor, float linearDamping, float angularDamping, 
       Vector3 centerOfMass, Matrix4x4 inertiaTensor, Vector3 linearVelocity, Vector3 angularVelocity, float maxLinearVelocity, float maxAngularVelocity, IntPtr massProperties)
     {
       if (_CreateRigidBody == null)
@@ -1084,28 +1038,27 @@ namespace PhyicsRT
 
       var nPtrPosition = Vector3ToNative3(position);
       var nPtrRot = QuaternionToNative4(rot);
-      var nPtrInertiaTensor = Matrix4x4ToNative9(inertiaTensor);
+      var nPtrInertiaTensor = inertiaTensor == Matrix4x4.identity ? IntPtr.Zero : Matrix4x4ToNative9(inertiaTensor);
       var nPtrCenterOfMass = Vector3ToNative3(centerOfMass);
       var nPtrLinearVelocity = Vector3ToNative3(linearVelocity);
       var nPtrAngularVelocity = Vector3ToNative3(angularVelocity);
 
       var rs = _CreateRigidBody( 
         world, shape, nPtrPosition, nPtrRot, motionType, qualityType,
-        friction, restitution, mass, active, layer, gravityFactor, linearDamping, 
+        friction, restitution, mass, active, layer, BoolToInt(isTiggerVolume), BoolToInt(addContactListener), gravityFactor, linearDamping, 
         angularDamping, nPtrCenterOfMass, nPtrInertiaTensor, nPtrLinearVelocity, nPtrAngularVelocity, 
         maxLinearVelocity, maxAngularVelocity,
         massProperties);
       
-      FreeNativeMatrix4x4(nPtrInertiaTensor);
+      if(nPtrInertiaTensor != IntPtr.Zero)
+        FreeNativeMatrix4x4(nPtrInertiaTensor);
       FreeNativeVector3(nPtrPosition);
       FreeNativeVector4(nPtrRot);
       FreeNativeVector3(nPtrCenterOfMass);
       FreeNativeVector3(nPtrLinearVelocity);
       FreeNativeVector3(nPtrAngularVelocity);
       
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1116,9 +1069,7 @@ namespace PhyicsRT
 
       _SetRigidBodyMass(body, mass);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetRigidBodyFriction(IntPtr body, float friction)
     {
@@ -1127,9 +1078,7 @@ namespace PhyicsRT
 
       _SetRigidBodyFriction(body, friction);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetRigidBodyRestitution(IntPtr body, float restitution)
     {
@@ -1138,9 +1087,7 @@ namespace PhyicsRT
 
       _SetRigidBodyFriction(body, restitution);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetRigidBodyAngularDamping(IntPtr body, float angularDamping)
     {
@@ -1149,9 +1096,7 @@ namespace PhyicsRT
 
       _SetRigidBodyAngularDamping(body, angularDamping);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetRigidBodyLinearDampin(IntPtr body, float linearDamping)
     {
@@ -1160,9 +1105,7 @@ namespace PhyicsRT
 
       _SetRigidBodyLinearDampin(body, linearDamping);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetRigidBodyCenterOfMass(IntPtr body, Vector3 centerOfMass)
     {
@@ -1173,9 +1116,7 @@ namespace PhyicsRT
       _SetRigidBodyCenterOfMass(body, nPtrCenterOfMass);
       FreeNativeVector3(nPtrCenterOfMass);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetRigidBodyPosition(IntPtr body, Vector3 pos)
     {
@@ -1186,9 +1127,7 @@ namespace PhyicsRT
       _SetRigidBodyPosition(body, nPtrPos);
       FreeNativeVector3(nPtrPos);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetRigidBodyPositionAndRotation(IntPtr body, Vector3 pos, Quaternion roate)
     {
@@ -1201,9 +1140,7 @@ namespace PhyicsRT
       FreeNativeVector3(nPtrPos);
       FreeNativeVector4(nPtrRot);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetRigidBodyMotionType(IntPtr body, int newState)
     {
@@ -1212,9 +1149,7 @@ namespace PhyicsRT
 
       _SetRigidBodyMotionType(body, newState);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetRigidBodyLayer(IntPtr body, int layer) 
     {
@@ -1223,9 +1158,7 @@ namespace PhyicsRT
 
       _SetRigidBodyLayer(body, layer);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetRigidBodyMaxLinearVelocity(IntPtr body, float v)
     {
@@ -1234,9 +1167,7 @@ namespace PhyicsRT
 
       _SetRigidBodyMaxLinearVelocity(body, v);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetRigidBodyMaxAngularVelocity(IntPtr body, float v)
     {
@@ -1245,9 +1176,7 @@ namespace PhyicsRT
 
       _SetRigidBodyMaxAngularVelocity(body, v);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }   
     public void DestroyRigidBody(IntPtr body)
     {
@@ -1256,9 +1185,7 @@ namespace PhyicsRT
 
       _DestroyRigidBody(body);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetRigidBodyGravityFactor(IntPtr body, float gravityFactor)
     {
@@ -1267,9 +1194,7 @@ namespace PhyicsRT
 
       _SetRigidBodyGravityFactor(body, gravityFactor);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void GetConvexHullResultTriangles(IntPtr result, IntPtr trianglesBuffer, int count)
     {
@@ -1278,9 +1203,7 @@ namespace PhyicsRT
 
       _GetConvexHullResultTriangles(result, trianglesBuffer, count);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void GetConvexHullResultVertices(IntPtr result, IntPtr pointsBuffer, int numPoints)
     {
@@ -1289,19 +1212,30 @@ namespace PhyicsRT
 
       _GetConvexHullResultVertices(result, pointsBuffer, numPoints);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
-    public IntPtr Build3DPointsConvexHull(IntPtr points, int numPoints)
+    public IntPtr Build3DPointsConvexHull(Vector3[] points)
     {
       if (_Build3DPointsConvexHull == null)
         throw new ApiNotFoundException("Build3DPointsConvexHull");
+      
+      float[] verticesArr = new float[points.Length * 3];
+      for (int i = 0; i < points.Length; i++)
+      {
+          verticesArr[i * 3 + 0] = points[i].x;
+          verticesArr[i * 3 + 1] = points[i].y;
+          verticesArr[i * 3 + 2] = points[i].z;
+      }
+      
+      int bufferSize = Marshal.SizeOf<float>() * verticesArr.Length;
+      IntPtr verticesBuffer = Marshal.AllocHGlobal(bufferSize);
+      Marshal.Copy(verticesArr, 0, verticesBuffer, verticesArr.Length);
 
-      var rs = _Build3DPointsConvexHull(points, numPoints);
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      var rs = _Build3DPointsConvexHull(verticesBuffer, verticesArr.Length);
+      
+      Marshal.FreeHGlobal(verticesBuffer);
+
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1311,9 +1245,7 @@ namespace PhyicsRT
         throw new ApiNotFoundException("Build3DFromPlaneConvexHull");
 
       var rs = _Build3DFromPlaneConvexHull(panels, numPanels);
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1323,9 +1255,7 @@ namespace PhyicsRT
         throw new ApiNotFoundException("ComputeShapeVolumeMassProperties");
 
       var rs = _ComputeShapeVolumeMassProperties(shape, mass);
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1338,9 +1268,7 @@ namespace PhyicsRT
       var rs = _ComputeBoxSurfaceMassProperties(p0, mass, surfaceThickness);
       FreeNativeVector3(p0);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1352,9 +1280,7 @@ namespace PhyicsRT
       var p0 = Vector3ToNative3(halfExtents);
       var rs = _ComputeBoxVolumeMassProperties(p0, mass);
       FreeNativeVector3(p0);
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1371,9 +1297,7 @@ namespace PhyicsRT
       FreeNativeVector3(pStartAxis);
       FreeNativeVector3(pEndAxis);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1390,9 +1314,7 @@ namespace PhyicsRT
       FreeNativeVector3(pStartAxis);
       FreeNativeVector3(pEndAxis);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1402,9 +1324,7 @@ namespace PhyicsRT
         throw new ApiNotFoundException("ComputeSphereVolumeMassProperties");
 
       var rs = _ComputeSphereVolumeMassProperties(radius, sphereMass);
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1414,9 +1334,7 @@ namespace PhyicsRT
         throw new ApiNotFoundException("ComputeSphereSurfaceMassProperties");
 
       var rs = _ComputeSphereSurfaceMassProperties(radius, mass, surfaceThickness);
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1435,9 +1353,7 @@ namespace PhyicsRT
       FreeNativeVector3(p1);
       FreeNativeVector3(p2);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1452,9 +1368,7 @@ namespace PhyicsRT
 
       FreeNativeVector3(p0);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1464,9 +1378,7 @@ namespace PhyicsRT
         throw new ApiNotFoundException("CreateSphereShape");
 
       var rs = _CreateSphereShape(radius);
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1483,9 +1395,7 @@ namespace PhyicsRT
       FreeNativeVector3(pStart);
       FreeNativeVector3(pEnd);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1502,9 +1412,7 @@ namespace PhyicsRT
       FreeNativeVector3(pStart);
       FreeNativeVector3(pEnd);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1523,21 +1431,32 @@ namespace PhyicsRT
       FreeNativeVector3(p1);
       FreeNativeVector3(p2);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
-    public IntPtr CreateConvexVerticesShape(IntPtr vertices, int numVertices, float convexRadius)
+    public IntPtr CreateConvexVerticesShape(Vector3[] vertices, float convexRadius)
     {
       if (_CreateConvexVerticesShape == null)
         throw new ApiNotFoundException("CreateConvexVerticesShape");
 
-      var rs = _CreateConvexVerticesShape(vertices, numVertices, convexRadius);
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      float[] verticesArr = new float[vertices.Length * 3];
+      for (int i = 0; i < vertices.Length; i++)
+      {
+          verticesArr[i * 3 + 0] = vertices[i].x;
+          verticesArr[i * 3 + 1] = vertices[i].y;
+          verticesArr[i * 3 + 2] = vertices[i].z;
+      }
+      
+      int bufferSize = Marshal.SizeOf<float>() * verticesArr.Length;
+      IntPtr verticesBuffer = Marshal.AllocHGlobal(bufferSize);
+      Marshal.Copy(verticesArr, 0, verticesBuffer, verticesArr.Length);
+
+      var rs = _CreateConvexVerticesShape(verticesBuffer, verticesArr.Length, convexRadius);
+
+      Marshal.FreeHGlobal(verticesBuffer);
+
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1547,10 +1466,36 @@ namespace PhyicsRT
         throw new ApiNotFoundException("CreateConvexVerticesShapeByConvexHullResult");
 
       var rs = _CreateConvexVerticesShapeByConvexHullResult(result, convexRadius);
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
+      return rs;
+    }
+    public IntPtr CreateSimpleMeshShape(Vector3[] vertices, int[] triangles, float convexRadius) {
+      if (_CreateSimpleMeshShape == null)
+        throw new ApiNotFoundException("CreateSimpleMeshShape");
+      
+      float[] verticesArr = new float[vertices.Length * 3];
+      for (int i = 0; i < vertices.Length; i++)
+      {
+          verticesArr[i * 3 + 0] = vertices[i].x;
+          verticesArr[i * 3 + 1] = vertices[i].y;
+          verticesArr[i * 3 + 2] = vertices[i].z;
+      }
+      
+      int bufferSize = Marshal.SizeOf<float>() * verticesArr.Length;
+      IntPtr verticesBuffer = Marshal.AllocHGlobal(bufferSize);
+      Marshal.Copy(verticesArr, 0, verticesBuffer, verticesArr.Length);
+
+      bufferSize = Marshal.SizeOf<int>() * triangles.Length;
+      IntPtr trianglesBuffer = Marshal.AllocHGlobal(bufferSize);
+      Marshal.Copy(triangles, 0, trianglesBuffer, triangles.Length);
+
+      var rs = _CreateSimpleMeshShape(verticesBuffer, verticesArr.Length, trianglesBuffer, triangles.Length, convexRadius);
+
+      Marshal.FreeHGlobal(trianglesBuffer);
+      Marshal.FreeHGlobal(verticesBuffer);
+
+      ApiExceptionCheck();
       return rs;
     }
     public IntPtr CreateConvexTranslateShape(IntPtr child, Vector3 translation)
@@ -1564,9 +1509,7 @@ namespace PhyicsRT
 
       FreeNativeVector3(ptr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1576,9 +1519,7 @@ namespace PhyicsRT
         throw new ApiNotFoundException("CreateConvexTransformShape");
 
       var rs = _CreateConvexTransformShape(child, transform);
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1588,9 +1529,7 @@ namespace PhyicsRT
         throw new ApiNotFoundException("CreateListShape");
 
       var rs = _CreateListShape(childs, childCount);
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1600,9 +1539,7 @@ namespace PhyicsRT
         throw new ApiNotFoundException("CreateStaticCompoundShape");
 
       var rs = _CreateStaticCompoundShape(childs, transforms, childCount);
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1613,9 +1550,7 @@ namespace PhyicsRT
 
       _StaticCompoundShapeSetInstanceEnabled(pStaticCompoundShape, id, enabled);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public int StaticCompoundShapeIsInstanceEnabled(IntPtr pStaticCompoundShape, int id)
     {
@@ -1623,9 +1558,7 @@ namespace PhyicsRT
         throw new ApiNotFoundException("StaticCompoundShapeIsInstanceEnabled");
 
       var rs = _StaticCompoundShapeIsInstanceEnabled(pStaticCompoundShape, id);
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1636,9 +1569,7 @@ namespace PhyicsRT
 
       _StaticCompoundShapeEnableAllInstancesAndShapeKeys(pStaticCompoundShape);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void DestroyShape(IntPtr s)
     {
@@ -1647,13 +1578,11 @@ namespace PhyicsRT
 
       _DestroyShape(s);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public IntPtr CreatePhysicsWorld(Vector3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance,
       bool bContinuous, bool bVisualDebugger, uint layerMask, uint[] layerToMask,
-      fnOnConstraintBreakingCallback onConstraintBreakingCallback, fnOnBodyTriggerEventCallback onBodyTriggerEnterCallback, fnOnBodyTriggerEventCallback onBodyTriggerLeaveCallback)
+      fnOnConstraintBreakingCallback onConstraintBreakingCallback, fnOnBodyTriggerEventCallback onBodyTriggerEventCallback, fnOnBodyContactEventCallback onBodyContactEventCallback)
     {
       if (_CreatePhysicsWorld == null)
         throw new ApiNotFoundException("CreatePhysicsWorld");
@@ -1669,8 +1598,8 @@ namespace PhyicsRT
       var pGravity = Vector3ToNative3(gravity);
 
       var onConstraintBreakingCallbackPtr = Marshal.GetFunctionPointerForDelegate(onConstraintBreakingCallback);
-      var onBodyTriggerEnterCallbackPtr = Marshal.GetFunctionPointerForDelegate(onBodyTriggerEnterCallback);
-      var onBodyTriggerLeaveCallbackPtr = Marshal.GetFunctionPointerForDelegate(onBodyTriggerLeaveCallback);
+      var onBodyTriggerEnterCallbackPtr = Marshal.GetFunctionPointerForDelegate(onBodyTriggerEventCallback);
+      var onBodyTriggerLeaveCallbackPtr = Marshal.GetFunctionPointerForDelegate(onBodyContactEventCallback);
 
       var rs = _CreatePhysicsWorld(pGravity, solverIterationCount, broadPhaseWorldSize, collisionTolerance, bContinuous, bVisualDebugger, layerMask, layerToMaskPtr, 
         onConstraintBreakingCallbackPtr, onBodyTriggerEnterCallbackPtr, onBodyTriggerLeaveCallbackPtr);
@@ -1678,9 +1607,7 @@ namespace PhyicsRT
       FreeNativeVector4(pGravity);
       Marshal.FreeHGlobal(layerToMaskPtr);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1691,9 +1618,7 @@ namespace PhyicsRT
 
       _DestroyPhysicsWorld(world);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void StepPhysicsWorld(IntPtr world, float timestep)
     {
@@ -1701,9 +1626,7 @@ namespace PhyicsRT
         throw new ApiNotFoundException("StepPhysicsWorld");
       _StepPhysicsWorld(world, timestep);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetPhysicsWorldGravity(IntPtr world, Vector3 gravity)
     {
@@ -1716,9 +1639,7 @@ namespace PhyicsRT
 
       FreeNativeVector4(pGravity);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public void SetPhysicsWorldCollisionLayerMasks(IntPtr world, uint layerId, uint toMask, int enable, int forceUpdate) {
       if (_SetPhysicsWorldCollisionLayerMasks == null)
@@ -1726,9 +1647,7 @@ namespace PhyicsRT
 
       _SetPhysicsWorldCollisionLayerMasks(world, layerId, toMask, enable, forceUpdate);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }
     public int ReadPhysicsWorldBodys(IntPtr world, IntPtr buffer, int count)
     {
@@ -1737,9 +1656,7 @@ namespace PhyicsRT
 
       var rs = _ReadPhysicsWorldBodys(world, buffer, count);
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
 
       return rs;
     }
@@ -1750,9 +1667,7 @@ namespace PhyicsRT
 
       _TestAssert();
 
-      var exp = PhysicsApi.checkException();
-      if (exp != null)
-        throw new ApiException(exp);
+      ApiExceptionCheck();
     }   
   };
 }

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using PhyicsRT;
+using PhysicsRT;
 using Unity.Mathematics;
 using Unity.Physics.Editor;
 using UnityEditor;
@@ -53,6 +53,8 @@ public class PhysicsShapeEditorTool : EditorTool
     }
 
     var shape = target as PhysicsShape;
+    if(shape == null)
+      return;
 
     var sScale = shape.Wrap == ShapeWrap.TransformShape ? shape.ShapeScale : Vector3.one;
     var sOrientation = shape.Wrap == ShapeWrap.TransformShape ? Quaternion.Euler(shape.ShapeRotation) : Quaternion.Euler(shape.ShapeType == ShapeType.Box ? 0 : 90, 0, 0);
@@ -226,29 +228,18 @@ public class PhysicsShapeEditorTool : EditorTool
             return;
           }
 
-          //vertices To HGlobal
-          float[] verticesArr = new float[lastGenerateMesh.vertices.Length * 3];
-          for (int i = 0; i < lastGenerateMesh.vertices.Length; i++)
-          {
-              verticesArr[i * 3 + 0] = lastGenerateMesh.vertices[i].x;
-              verticesArr[i * 3 + 1] = lastGenerateMesh.vertices[i].y;
-              verticesArr[i * 3 + 2] = lastGenerateMesh.vertices[i].z;
-          }
-          int bufferSize = Marshal.SizeOf<float>() * verticesArr.Length;
-          IntPtr verticesBuffer = Marshal.AllocHGlobal(bufferSize);
-          Marshal.Copy(verticesArr, 0, verticesBuffer, verticesArr.Length);
+          if(!PhysicsApi.API.InitSuccess) 
+            PhysicsApi.PhysicsApiInit();
 
-          IntPtr convexHullResultPtr = PhysicsApi.API.Build3DPointsConvexHull(verticesBuffer, lastGenerateMesh.vertices.Length);
+          IntPtr convexHullResultPtr = PhysicsApi.API.Build3DPointsConvexHull(lastGenerateMesh.vertices);
           var convexHullResult = Marshal.PtrToStructure<sConvexHullResult>(convexHullResultPtr);
-
-          Marshal.FreeHGlobal(verticesBuffer);
 
           //Read convex hull result vertices
           float[] verticesArrResult = new float[convexHullResult.verticesCount * 3];
           Vector3[] verticesVArrResult = new Vector3[convexHullResult.verticesCount];
           int[] trianglesArrResult = new int[convexHullResult.trianglesCount * 3];
 
-          bufferSize = Marshal.SizeOf<float>() * verticesArrResult.Length;
+          int bufferSize = Marshal.SizeOf<float>() * verticesArrResult.Length;
           IntPtr verticesArrResultBuffer = Marshal.AllocHGlobal(bufferSize);
 
           PhysicsApi.API.GetConvexHullResultVertices(convexHullResultPtr, verticesArrResultBuffer, convexHullResult.verticesCount);

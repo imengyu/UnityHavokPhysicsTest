@@ -76,7 +76,7 @@ sPhysicsRigidbodyMassProperties* ComputeShapeVolumeMassProperties(sPhysicsShape*
 }
 
 sPhysicsRigidbody* CreateRigidBody(sPhysicsWorld* world, sPhysicsShape* shape, spVec3 position, spVec4 rotation,
-	int motionType, int qualityType, float friction, float restitution, float mass, int active, int layer, int isTiggerVolume,
+	int motionType, int qualityType, float friction, float restitution, float mass, int active, int layer, int isTiggerVolume, int addContactListener,
 	float gravityFactor, float linearDamping, float angularDamping, spVec3 centerOfMass, spMatrix4 inertiaTensor,
 	spVec3 linearVelocity, spVec3 angularVelocity, float maxLinearVelocity, float maxAngularVelocity, sPhysicsRigidbodyMassProperties* massProperties
 )
@@ -116,12 +116,17 @@ sPhysicsRigidbody* CreateRigidBody(sPhysicsWorld* world, sPhysicsShape* shape, s
 		info.m_mass = mass;
 		if(centerOfMass)
 			info.m_centerOfMass.set(centerOfMass->x, centerOfMass->y, centerOfMass->z);
-		if (inertiaTensor) {
+		if (inertiaTensor)
 			info.m_inertiaTensor = Matrix4TohkMatrix3(inertiaTensor);
-		}
+	}
+
+	if (addContactListener) {
+		info.m_contactPointCallbackDelay = 0;
 	}
 
 	sPhysicsRigidbody* body = new sPhysicsRigidbody();
+	memset(body, 0, sizeof(sPhysicsRigidbody));
+
 	hkpRigidBody* newRigidBody = new hkpRigidBody(info);
 
 	if (initStruct.mulithread) world->physicsWorld->markForWrite();
@@ -141,9 +146,36 @@ sPhysicsRigidbody* CreateRigidBody(sPhysicsWorld* world, sPhysicsShape* shape, s
 	if (isTiggerVolume)
 		(new MyTriggerVolume(body))->removeReference();
 
+	if (addContactListener) {
+		body->collisionListener = new MyCollisionResolution(world);
+		body->rigidBody->addContactListener(body->collisionListener);
+	}
+
 	world->bodyList.add(body);
 	return body;
 	TRY_END(nullptr)
+}
+void DestroyRigidBody(sPhysicsRigidbody* body)
+{
+	TRY_BEGIN
+		CHECK_PARAM_PTR(body);
+
+	if (body->collisionListener) {
+		body->rigidBody->removeContactListener(body->collisionListener);
+		delete body->collisionListener;
+		body->collisionListener = nullptr;
+	}
+	if (body->world && body->world->physicsWorld) {
+
+		if (initStruct.mulithread) body->world->physicsWorld->markForWrite();
+		body->world->physicsWorld->removeEntity(body->rigidBody);
+		if (initStruct.mulithread) body->world->physicsWorld->unmarkForWrite();
+
+		body->world->bodyList.remove(body);
+	}
+
+	delete body;
+	TRY_END_NORET
 }
 
 int GetRigidBodyId(sPhysicsRigidbody* body)
@@ -291,22 +323,6 @@ void SetRigidBodyPositionAndRotation(sPhysicsRigidbody* body, spVec3 pos, spVec4
 		hkVector4(pos->x, pos->y, pos->z),
 		hkQuaternion(rotation->x, rotation->y, rotation->z, rotation->w)
 	);
-	TRY_END_NORET
-}
-void DestroyRigidBody(sPhysicsRigidbody* body)
-{
-	TRY_BEGIN
-		CHECK_PARAM_PTR(body);
-
-	if (body->world && body->world->physicsWorld) {
-
-		if (initStruct.mulithread) body->world->physicsWorld->markForWrite();
-		body->world->physicsWorld->removeEntity(body->rigidBody);
-		if (initStruct.mulithread) body->world->physicsWorld->unmarkForWrite();
-
-		body->world->bodyList.remove(body);
-	}
-	delete body;
 	TRY_END_NORET
 }
 void GetRigidBodyPosition(sPhysicsRigidbody* body, spVec3 outPos)

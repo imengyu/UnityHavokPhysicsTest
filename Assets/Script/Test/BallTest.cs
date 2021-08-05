@@ -1,16 +1,15 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class BallTest : MonoBehaviour
 {
     void Start()
     {
-        
+        StartCoroutine(LateHide());
     }
-    void Update()
+    IEnumerator LateHide()
     {
-        
-    }
-    
+        yield return new WaitForSeconds(10);
+        Destroy(this);
+    } 
 }

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace PhyicsRT
+namespace PhysicsRT
 {
     public static class PhysicsSystemInit
     {

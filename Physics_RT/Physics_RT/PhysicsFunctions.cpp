@@ -204,13 +204,24 @@ void CommonDelete(const void* ptr)
 	delete ptr;
 }
 
+hkVector4 F3TohkVec4(float x, float y, float z) {
+	return hkVector4(x, y, z);
+}
+hkVector4 F4TohkVec4(float x, float y, float z, float w) {
+	return hkVector4(x, y, z, w);
+}
+void hkVec4ToF3(float *p, hkVector4 &v) {
+	*p = v.getComponent<0>();
+	*(p+1) = v.getComponent<1>();
+	*(p+2) = v.getComponent<2>();
+}
 hkVector4 Vec3TohkVec4(const spVec3 vec3) {
 	CHECK_PARAM_PTR(vec3);
-	return hkVector4(vec3->x, vec3->y, vec3->z);  
+	return F3TohkVec4(vec3->x, vec3->y, vec3->z);
 }
 hkVector4 Vec4TohkVec4(const spVec4 vec4) {
 	CHECK_PARAM_PTR(vec4);
-	return hkVector4(vec4->x, vec4->y, vec4->z, vec4->w); 
+	return F4TohkVec4(vec4->x, vec4->y, vec4->z, vec4->w);
 }
 hkQuaternion Vec4TohkQuaternion(const spVec4 vec4) { 
 	CHECK_PARAM_PTR(vec4);
@@ -330,6 +341,7 @@ void InitFunctions()
 	apiArray[i++] = CreateTriangleShape;
 	apiArray[i++] = CreateConvexVerticesShape;
 	apiArray[i++] = CreateConvexVerticesShapeByConvexHullResult;
+	apiArray[i++] = CreateSimpleMeshShape;
 	apiArray[i++] = CreateConvexTranslateShape;
 	apiArray[i++] = CreateConvexTransformShape;
 	apiArray[i++] = CreateListShape;

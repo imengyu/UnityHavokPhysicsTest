@@ -5,6 +5,7 @@
 struct sPhysicsWorld;
 struct sPhysicsShape;
 
+class MyCollisionResolution;
 struct sPhysicsRigidbody {
 	hkpRigidBody* rigidBody;
 	sPhysicsWorld* world;
@@ -12,13 +13,14 @@ struct sPhysicsRigidbody {
 	int active;
 	struct sPhysicsRigidbody* prev;
 	struct sPhysicsRigidbody* next;
+	MyCollisionResolution* collisionListener;
 };
 struct sPhysicsRigidbodyMassProperties {
 	hkMassProperties massProperties;
 };
 
 sPhysicsRigidbody* CreateRigidBody(sPhysicsWorld* world, sPhysicsShape* shape, spVec3 position, spVec4 rotation,
-	int motionType, int qualityType, float friction, float restitution, float mass, int active, int layer, int isTiggerVolume,
+	int motionType, int qualityType, float friction, float restitution, float mass, int active, int layer, int isTiggerVolume, int addContactListener,
 	float gravityFactor, float linearDamping, float angularDamping, spVec3 centerOfMass, spMatrix4 inertiaTensor,
 	spVec3 linearVelocity, spVec3 angularVelocity, float maxLinearVelocity, float maxAngularVelocity, sPhysicsRigidbodyMassProperties* massProperties);
 int GetRigidBodyId(sPhysicsRigidbody* body);

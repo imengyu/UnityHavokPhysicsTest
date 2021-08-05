@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-namespace PhyicsRT
+namespace PhysicsRT
 {
   [StructLayout(LayoutKind.Sequential)]
   internal struct sVec3
@@ -29,6 +29,7 @@ namespace PhyicsRT
       return new Vector4(vOut.x, vOut.y, vOut.z, vOut.w);
     }
   };
+
 
   [StructLayout(LayoutKind.Sequential)]
   internal struct sInitStruct
@@ -58,44 +59,46 @@ namespace PhyicsRT
   };
   [StructLayout(LayoutKind.Sequential)]
   public struct sConstraintBreakData {
-      
+      public bool breakable;
       /// float
       public float threshold;
-      
       /// float
       public float maximumAngularImpulse;
-      
       /// float
       public float maximumLinearImpulse;
   }
   [StructLayout(LayoutKind.Sequential)]
   public struct sConstraintMotorData {
-      
+      /// int
+      public bool enable;
       /// int
       public int spring;
-      
       /// float
       public float m_tau;
-      
       /// float
       public float m_damping;
-      
       /// float
       public float m_proportionalRecoveryVelocity;
-      
       /// float
       public float m_constantRecoveryVelocity;
-      
       /// float
       public float m_minForce;
-      
       /// float
       public float m_maxForce;
-      
       /// float
       public float m_springConstant;
-      
       /// float
       public float m_springDamping;
+  }
+  [StructLayout(LayoutKind.Sequential)]
+  public struct sPhysicsBodyContactData {
+    public float distance;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3, ArraySubType = UnmanagedType.R4)]
+    public float[] pos;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3, ArraySubType = UnmanagedType.R4)]
+    public float[] normal;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3, ArraySubType = UnmanagedType.R4)]
+    public float[] separatingNormal;
+    public float separatingVelocity;
   }
 }

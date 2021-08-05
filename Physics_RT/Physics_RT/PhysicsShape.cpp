@@ -11,6 +11,8 @@
 #include <Physics2012/Collide/Shape/Convex/ConvexVertices/hkpConvexVerticesShape.h>
 #include <Physics2012/Collide/Shape/Convex/ConvexVertices/hkpConvexVerticesConnectivity.h>
 #include <Physics2012/Collide/Shape/Compound/Collection/List/hkpListShape.h>
+#include <Physics2012/Collide/Shape/Compound/Collection/ExtendedMeshShape/hkpExtendedMeshShape.h> 
+#include <Physics2012/Collide/Shape/Compound/Collection/SimpleMesh/hkpSimpleMeshShape.h> 
 #include <Physics2012/Internal/Collide/StaticCompound/hkpStaticCompoundShape.h>
 #include <Common/Internal/GeometryProcessing/ConvexHull/hkgpConvexHull.h>
 
@@ -75,15 +77,9 @@ sPhysicsShape* CreateConvexVerticesShape(float *vertices, int numVertices, float
 	config.m_convexRadius = convexRadius;
 	
 	// generate a convex geometry
-	hkArray<hkVector4> hkVertices(numVertices);
+	hkArray<hkVector4> hkVertices;
 	for (int i = 0; i < numVertices; i += 3)
-	{
-		hkVector4 xyz(
-			vertices[i], 
-			vertices[i + 1], 
-			vertices[i + 2]);		
-		hkVertices.pushBack(xyz);
-	}
+		hkVertices.pushBack(F3TohkVec4(vertices[i + 0], vertices[i + 1], vertices[i + 2]));
 
 	s->shape = new hkpConvexVerticesShape(hkStridedVertices(hkVertices), config);
 	return s;
@@ -101,6 +97,37 @@ sPhysicsShape* CreateConvexVerticesShapeByConvexHullResult(sConvexHullResult* re
 	config.m_convexRadius = convexRadius;
 
 	s->shape = new hkpConvexVerticesShape(hkStridedVertices(result->geometry.m_vertices), config);
+	return s;
+
+	TRY_END(nullptr)
+}
+sPhysicsShape* CreateSimpleMeshShape(float* vertices, int numVertices, int* triangles, int numTriangles, float convexRadius) {
+	TRY_BEGIN
+		CHECK_PARAM_PTR(vertices);
+
+	sPhysicsShape* s = new sPhysicsShape();
+	s->type = MeshShape;
+
+	// generate a convex geometry
+	hkArray<hkVector4> hkVertices(numVertices);
+
+
+	auto shape = new hkpSimpleMeshShape(convexRadius);
+	shape->m_vertices.setSize(numVertices / 3);
+	for (int i = 0; i < numVertices; i += 3)
+	{
+		shape->m_vertices[i / 3] = F3TohkVec4(vertices[i + 0], vertices[i + 1], vertices[i + 2]);
+	}
+	shape->m_triangles.setSize(numTriangles / 3);
+	for (int i = 0; i < numTriangles; i += 3) {
+		hkpSimpleMeshShape::Triangle t;
+		t.m_a = triangles[i];
+		t.m_b = triangles[i + 1];
+		t.m_c = triangles[i + 2];
+
+		shape->m_triangles[i / 3] = t;
+	}
+	s->shape = shape;
 	return s;
 
 	TRY_END(nullptr)
@@ -223,7 +250,7 @@ void GetConvexHullResultTriangles(sConvexHullResult* result, int* trianglesBuffe
 	int i = 0;
 	auto triangles = &result->geometry.m_triangles;
 	for (auto it = triangles->begin(); it != triangles->end(); it++, i++) {
-		trianglesBuffer[i * 3] = it->m_a;
+		trianglesBuffer[i * 3 + 0] = it->m_a;
 		trianglesBuffer[i * 3 + 1] = it->m_b;
 		trianglesBuffer[i * 3 + 2] = it->m_c;
 	}
@@ -238,9 +265,7 @@ void GetConvexHullResultVertices(sConvexHullResult* result, float* pointsBuffer,
 	int i = 0;
 	auto vertices = &result->geometry.m_vertices;
 	for (auto it = vertices->begin(); it != vertices->end(); it++, i++) {
-		pointsBuffer[i * 3] = it->getComponent<0>();
-		pointsBuffer[i * 3 + 1] = it->getComponent<1>();
-		pointsBuffer[i * 3 + 2] = it->getComponent<2>();
+		hkVec4ToF3(&pointsBuffer[i * 3], *it);
 	}
 
 	TRY_END_NORET
@@ -253,13 +278,7 @@ sConvexHullResult* Build3DPointsConvexHull(float* points, int numPoints) {
 	// generate a convex geometry
 	hkArray<hkVector4> hkPoints;
 	for (int i = 0; i < numPoints; i++)
-	{
-		hkVector4 xyz(
-			points[i * 3],
-			points[i * 3 + 1],
-			points[i * 3 + 2]);
-		hkPoints.pushBack(xyz);
-	}
+		hkPoints.pushBack(F3TohkVec4(points[i * 3 + 0], points[i * 3 + 1], points[i * 3 + 2]));
 
 	hkgpConvexHull* convexHull = new hkgpConvexHull();
 	if (convexHull->build(hkPoints.begin(), numPoints) == -1)
@@ -295,13 +314,7 @@ sConvexHullResult* Build3DFromPlaneConvexHull(float* panels, int numPanels) {
 	// generate a convex geometry
 	hkArray<hkVector4> hkPanels;
 	for (int i = 0; i < numPanels * 4; i += 3)
-	{
-		hkVector4 xyz(
-			panels[i],
-			panels[i + 1],
-			panels[i + 2]);
-		hkPanels.pushBack(xyz);
-	}
+		hkPanels.pushBack(F3TohkVec4(panels[i + 0], panels[i + 1], panels[i + 2]));
 
 	hkgpConvexHull* convexHull = new hkgpConvexHull();
 	convexHull->buildFromPlanes(hkPanels.begin(), numPanels);

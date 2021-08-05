@@ -218,7 +218,7 @@ sPhysicsConstraints* CreateLimitedHingeConstraint(sPhysicsRigidbody* body, sPhys
 
 	TRY_END(nullptr)
 }
-sPhysicsConstraints* CreateWheelConstraint(sPhysicsRigidbody* wheelRigidBody, sPhysicsRigidbody* chassis, spVec3 axle, spVec3 suspension, spVec3 steering, float suspensionLimitMin, float suspensionLimitMax, float suspensionStrength, float suspensionDamping, sConstraintBreakData* breakable)
+sPhysicsConstraints* CreateWheelConstraint(sPhysicsRigidbody* wheelRigidBody, sPhysicsRigidbody* chassis, spVec3 povit, spVec3 axle, spVec3 suspension, spVec3 steering, float suspensionLimitMin, float suspensionLimitMax, float suspensionStrength, float suspensionDamping, sConstraintBreakData* breakable)
 {
 	TRY_BEGIN
 
@@ -228,7 +228,7 @@ sPhysicsConstraints* CreateWheelConstraint(sPhysicsRigidbody* wheelRigidBody, sP
 
 	// Create the constraint
 	auto data = new hkpWheelConstraintData();
-	data->setInWorldSpace(wheelRigidBody->rigidBody->getTransform(), chassis->rigidBody->getTransform(), wheelRigidBody->rigidBody->getPosition(), Vec3TohkVec4(axle), Vec3TohkVec4(suspension), Vec3TohkVec4(steering));
+	data->setInWorldSpace(wheelRigidBody->rigidBody->getTransform(), chassis->rigidBody->getTransform(), Vec3TohkVec4(povit), Vec3TohkVec4(axle), Vec3TohkVec4(suspension), Vec3TohkVec4(steering));
 	data->setSuspensionMaxLimit(suspensionLimitMin);
 	data->setSuspensionMinLimit(suspensionLimitMax);
 	data->setSuspensionStrength(suspensionStrength);

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using PhyicsRT;
+using PhysicsRT;
 using Unity.Mathematics;
 using Unity.Physics.Editor;
 using UnityEditor;
@@ -38,6 +38,8 @@ class PhysicsBodyEditor : Editor
         pLayer = serializedObject.FindProperty("m_Layer");
         pTigger = serializedObject.FindProperty("m_IsTigger");
         pDoNotAutoCreateAtAwake = serializedObject.FindProperty("m_DoNotAutoCreateAtAwake");
+        pAddContactListener = serializedObject.FindProperty("m_AddContactListener"); 
+        pAutoComputeCenterOfMass = serializedObject.FindProperty("m_AutoComputeCenterOfMass"); 
 
         var names = AssetDatabase.LoadAssetAtPath<PhysicsLayerNames>("Assets/Resources/PhysicsLayerNames.asset");
         var tags = PhysicsLayerTags.Everything;
@@ -64,7 +66,9 @@ class PhysicsBodyEditor : Editor
     private SerializedProperty pRestitution;
     private SerializedProperty pLayer;
     private SerializedProperty pTigger;
+    private SerializedProperty pAddContactListener;
     private SerializedProperty pDoNotAutoCreateAtAwake;
+    private SerializedProperty pAutoComputeCenterOfMass;
 
     public override void OnInspectorGUI()
     {
@@ -85,9 +89,10 @@ class PhysicsBodyEditor : Editor
         EditorGUILayout.PropertyField(pCollidableQualityType);
         EditorGUILayout.PropertyField(pInitialLinearVelocity);
         EditorGUILayout.PropertyField(pInitialAngularVelocity);
+        EditorGUILayout.PropertyField(pAutoComputeCenterOfMass);
         EditorGUILayout.PropertyField(pCustomTags);
         EditorGUILayout.PropertyField(pTigger);
-        EditorGUILayout.PropertyField(pTigger);
+        EditorGUILayout.PropertyField(pAddContactListener);
 
         EditorGUI.EndDisabledGroup();
         

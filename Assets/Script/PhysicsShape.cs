@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-namespace PhyicsRT
+namespace PhysicsRT
 {
     public enum ShapeType
     {
@@ -41,7 +41,7 @@ namespace PhyicsRT
         [SerializeField]
         private Vector3 m_Rotation = Vector3.zero;
         [SerializeField]
-        private Vector3 m_Scale = Vector3.zero;
+        private Vector3 m_Scale = Vector3.one;
         
         [SerializeField]
         private CustomPhysicsMaterialTags m_CustomTags = CustomPhysicsMaterialTags.Nothing;
@@ -108,7 +108,7 @@ namespace PhyicsRT
         public IntPtr GetPtr() { return ptr; }
         public IntPtr ComputeMassProperties(float mass)
         {
-            Debug.Assert(ptr != IntPtr.Zero, "CreateConvexVerticesShapeByConvexHullResult failed!");
+            Debug.Assert(ptr != IntPtr.Zero, "ptr is null !");
 
             IntPtr result = IntPtr.Zero;
             switch (ShapeType)
@@ -139,12 +139,12 @@ namespace PhyicsRT
                         break;
                     }
                 case ShapeType.ConvexHull:
-                case ShapeType.Mesh:
                 case ShapeType.List:
                     {
                         result = PhysicsApi.API.ComputeShapeVolumeMassProperties(ptr, mass);
                         break;
                     }
+                case ShapeType.Mesh:
                 case ShapeType.StaticCompound:
                     break;
             }
@@ -198,22 +198,8 @@ namespace PhyicsRT
                             return;
                         }
 
-                        //To HGlobal
-                        float[] verticesArr = new float[mesh.vertices.Length * 3];
-                        for (int i = 0; i < mesh.vertices.Length; i++)
-                        {
-                            verticesArr[i * 3 + 0] = mesh.vertices[i].x;
-                            verticesArr[i * 3 + 1] = mesh.vertices[i].y;
-                            verticesArr[i * 3 + 2] = mesh.vertices[i].z;
-                        }
-                        int bufferSize = Marshal.SizeOf<float>() * verticesArr.Length;
-                        IntPtr verticesBuffer = Marshal.AllocHGlobal(bufferSize);
-                        Marshal.Copy(verticesArr, 0, verticesBuffer, verticesArr.Length);
-
-                        IntPtr convexHullResult = PhysicsApi.API.Build3DPointsConvexHull(verticesBuffer, mesh.vertices.Length);
+                        IntPtr convexHullResult = PhysicsApi.API.Build3DPointsConvexHull(mesh.vertices);
                         shapeRealPtr = PhysicsApi.API.CreateConvexVerticesShapeByConvexHullResult(convexHullResult, ShapeConvexRadius);
-
-                        Marshal.FreeHGlobal(verticesBuffer);
                         PhysicsApi.API.CommonDelete(convexHullResult);
                         break;
                     }
@@ -226,20 +212,7 @@ namespace PhyicsRT
                             return;
                         }
 
-                        float[] verticesArr = new float[mesh.vertices.Length * 3];
-                        for (int i = 0; i < mesh.vertices.Length; i++)
-                        {
-                            verticesArr[i * 3 + 0] = mesh.vertices[i].x;
-                            verticesArr[i * 3 + 1] = mesh.vertices[i].y;
-                            verticesArr[i * 3 + 2] = mesh.vertices[i].z;
-                        }
-                        int bufferSize = Marshal.SizeOf(verticesArr);
-                        IntPtr verticesBuffer = Marshal.AllocHGlobal(bufferSize);
-                        Marshal.Copy(verticesArr, 0, verticesBuffer, verticesArr.Length);
-
-                        shapeRealPtr = PhysicsApi.API.CreateConvexVerticesShape(verticesBuffer, mesh.vertices.Length, ShapeConvexRadius);
-
-                        Marshal.FreeHGlobal(verticesBuffer);
+                        shapeRealPtr = PhysicsApi.API.CreateSimpleMeshShape(mesh.vertices, mesh.triangles, ShapeConvexRadius);
                         break;
                     }
                 case ShapeType.List:
@@ -265,8 +238,8 @@ namespace PhyicsRT
                         for (int i = 0, ia = 0, c = transform.childCount; i < c; i++) {
                             var shape = transform.GetChild(i).gameObject.GetComponent<PhysicsShape>();
                             if (shape != null) {
-                                ia++;
                                 shape.StaticCompoundChildId = staticCompoundShapeRetIds[ia];
+                                ia++;
                             }
                         }
 
@@ -306,12 +279,18 @@ namespace PhyicsRT
         }
         private void DestroyShape(bool forceRecreate = false) {
             if(ptr != shapeRealPtr) {
-                PhysicsApi.API.DestroyShape(shapeRealPtr);
+                if(shapeRealPtr != IntPtr.Zero) {                
+                    PhysicsApi.API.DestroyShape(shapeRealPtr);
+                    shapeRealPtr = IntPtr.Zero;
+                }
+            } else {
                 shapeRealPtr = IntPtr.Zero;
             }
 
-            PhysicsApi.API.DestroyShape(ptr);
-            ptr = IntPtr.Zero;
+            if(ptr != IntPtr.Zero) {
+                PhysicsApi.API.DestroyShape(ptr);
+                ptr = IntPtr.Zero;
+            }
         }
         private IntPtr GetChildernShapes(bool forceRecreate, bool withChildTransforms, out int childCount, ref IntPtr outChildTransforms, ref List<IntPtr> childernTransforms)
         {
@@ -319,7 +298,8 @@ namespace PhyicsRT
 
             List<IntPtr> childernShapes = new List<IntPtr>();
             for (int i = 0, c = transform.childCount; i < c; i++) {
-                var shape = transform.GetChild(i).gameObject.GetComponent<PhysicsShape>();
+                var child = transform.GetChild(i);
+                var shape = child.gameObject.GetComponent<PhysicsShape>();
                 if (shape != null)
                 {
                     childernShapes.Add(shape.GetShapeBody(forceRecreate));
@@ -327,9 +307,9 @@ namespace PhyicsRT
                     if (withChildTransforms)// Child Transforms
                     {
                         childernTransforms.Add(PhysicsApi.API.CreateTransform(
-                            shape.transform.position.x, shape.transform.position.y, shape.transform.position.z,
-                            shape.transform.rotation.x, shape.transform.rotation.y, shape.transform.rotation.z, shape.transform.rotation.w,
-                            shape.transform.localScale.x, shape.transform.localScale.y, shape.transform.localScale.z
+                            shape.transform.localPosition.x, shape.transform.localPosition.y, shape.transform.localPosition.z,
+                            shape.transform.localRotation.x, shape.transform.localRotation.y, shape.transform.localRotation.z, shape.transform.localRotation.w,
+                            1, 1, 1
                         ));
                     }
                 }
@@ -337,14 +317,14 @@ namespace PhyicsRT
 
             childCount = childernShapes.Count;
 
-            var outArr = childernShapes.ToArray();
-            IntPtr outArrBuf = Marshal.AllocHGlobal(Marshal.SizeOf(outArr));
+            var outArr = childernShapes.ToArray(); 
+            IntPtr outArrBuf = Marshal.AllocHGlobal(Marshal.SizeOf<IntPtr>() * outArr.Length);
             Marshal.Copy(outArr, 0, outArrBuf, outArr.Length);
 
             if (withChildTransforms)
             {
                 var outArr2 = childernTransforms.ToArray();
-                IntPtr outArrBuf2 = Marshal.AllocHGlobal(Marshal.SizeOf(outArr2));
+                IntPtr outArrBuf2 = Marshal.AllocHGlobal(Marshal.SizeOf<IntPtr>() * outArr2.Length);
                 Marshal.Copy(outArr2, 0, outArrBuf2, outArr2.Length);
                 outChildTransforms = outArrBuf2;
             }
@@ -387,10 +367,10 @@ namespace PhyicsRT
                 case ShapeType.Capsule:
                 case ShapeType.Cylinder:
                     ShapeRadius = bounds.size.x / 2 * transform.localScale.x;
-                    ShapeHeight = bounds.size.y;
+                    ShapeHeight = bounds.size.y * transform.localScale.y;
                     break;
                 case ShapeType.Sphere:
-                    ShapeRadius = bounds.size.magnitude / 2;
+                    ShapeRadius = bounds.size.x * transform.localScale.x / 2;
                     break;
             }
         }

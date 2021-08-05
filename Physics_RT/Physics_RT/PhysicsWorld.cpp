@@ -1,6 +1,5 @@
 #include "PhysicsHeader.h"
 #include "PhysicsFunctions.h"
-#include "Utils.h"
 #include <list>
 #include <Physics2012/Collide/Query/Collector/RayCollector/hkpAllRayHitCollector.h> 
 #include <Physics2012/Collide/Query/Collector/RayCollector/hkpClosestRayHitCollector.h> 
@@ -19,7 +18,8 @@ void lateDeleteWordInfo() {
 
 sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance, 
 	bool bContinuous, bool bVisualDebugger, unsigned int layerMask, unsigned int *layerToMask,
-	fnOnConstraintBreakingCallback onConstraintBreakingCallback, fnOnBodyTriggerEnterCallback onBodyTriggerEnterCallback, fnOnBodyTriggerLeaveCallback onBodyTriggerLeaveCallback)
+	fnOnConstraintBreakingCallback onConstraintBreakingCallback, fnOnBodyTriggerEventCallback onBodyTriggerEeventCallback,
+	fnOnBodyContactEventCallback onBodyContactEventCallback)
 {
 	TRY_BEGIN
 
@@ -114,15 +114,14 @@ sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, floa
 			filter->enableCollisionsUsingBitfield(1 << i, layerToMask[i]);
 	}
 
-	physicsWorld->addC
 	physicsWorld->setCollisionFilter(filter, true);
 	filter->removeReference();
 
 	def->filter = filter;
 	def->physicsWorld = physicsWorld;
 	def->callbacks.onConstraintBreakingCallback = onConstraintBreakingCallback;
-	def->callbacks.onBodyTriggerEnterCallback = onBodyTriggerEnterCallback;
-	def->callbacks.onBodyTriggerLeaveCallback = onBodyTriggerLeaveCallback;
+	def->callbacks.onBodyContactEventCallback = onBodyContactEventCallback;
+	def->callbacks.onBodyTriggerEeventCallback = onBodyTriggerEeventCallback;
 
 	SetupWorldConstraintListener(def);
 

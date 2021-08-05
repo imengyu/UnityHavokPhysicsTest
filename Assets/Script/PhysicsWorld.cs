@@ -1,11 +1,11 @@
-using PhyicsRT.Utils;
+using PhysicsRT.Utils;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace PhyicsRT
+namespace PhysicsRT
 {
     [AddComponentMenu("PhysicsRT/Physics World")]
     [DefaultExecutionOrder(190)]
@@ -56,12 +56,17 @@ namespace PhyicsRT
         private SimpleLinkedList<PhysicsBody> bodysList = new SimpleLinkedList<PhysicsBody>();
         private Dictionary<int, PhysicsBody> bodysDict = new Dictionary<int, PhysicsBody>();
         private Dictionary<int, PhysicsConstraint> constraintDict = new Dictionary<int, PhysicsConstraint>();
+        private Dictionary<int, PhysicsBody> bodysDictAddContactListener = new Dictionary<int, PhysicsBody>();
         private PhysicsBody bodyCurrent = null;
         private IntPtr physicsWorldPtr = IntPtr.Zero;
         private IntPtr bodysUpdateBuffer = IntPtr.Zero;
         private int updateBufferSize = 0;
 
         private void Awake() {
+            _OnBodyContactEventCallback = OnBodyPointContactCallback;
+            _OnConstraintBreakingCallback = OnConstraintBreakingCallback;
+            _OnBodyTriggerEventCallback = OnBodyTiggerEventCallback;
+
             var layerNames = Resources.Load<PhysicsLayerNames>("PhysicsLayerNames");
             Debug.Assert(layerNames != null);
 
@@ -81,9 +86,9 @@ namespace PhyicsRT
                     VisualDebugger,
                     0xffffffff,
                     layerNames.GetGroupFilterMasks(), 
-                    OnConstraintBreakingCallback,
-                    OnBodyTriggerEnterCallback,
-                    OnBodyTriggerLeaveCallback);
+                    _OnConstraintBreakingCallback,
+                    _OnBodyTriggerEventCallback,
+                    _OnBodyContactEventCallback);
                 bodysUpdateBuffer = Marshal.AllocHGlobal(Marshal.SizeOf<float>() * 8 * updateBufferSize);
             }
         }
@@ -126,6 +131,7 @@ namespace PhyicsRT
         /// </summary>
         public void StepPhysicsWorld() {
             PhysicsApi.API.StepPhysicsWorld(physicsWorldPtr, Time.deltaTime);
+            UpdateContactListenerState();
         }
         /// <summary>
         /// 更新所有刚体位置旋转信息
@@ -143,18 +149,22 @@ namespace PhyicsRT
                 int count = 0;
                 while(bodyCurrent != null && count < updateBufferSize)
                 {
-                    if(bodyCurrent.gameObject.activeSelf && bodyCurrent.MotionType != MotionType.Keyframed) {
-                        bodyCurrent.transform.position = new Vector3(
-                            dat[count * 8 + 0],
-                            dat[count * 8 + 1],
-                            dat[count * 8 + 2]
-                        );
-                        bodyCurrent.transform.rotation = new Quaternion(
-                            dat[count * 8 + 3], 
-                            dat[count * 8 + 4], 
-                            dat[count * 8 + 5], 
-                            dat[count * 8 + 6]
-                        );
+                    if(bodyCurrent.gameObject.activeSelf) {
+                        if(bodyCurrent.MotionType == MotionType.Keyframed) //Keyframed 物体需要更新位置至引擎
+                            bodyCurrent.UpdateTransformToPhysicsEngine();
+                        else {
+                            bodyCurrent.transform.position = new Vector3(
+                                dat[count * 8 + 0],
+                                dat[count * 8 + 1],
+                                dat[count * 8 + 2]
+                            );
+                            bodyCurrent.transform.rotation = new Quaternion(
+                                dat[count * 8 + 3], 
+                                dat[count * 8 + 4], 
+                                dat[count * 8 + 5], 
+                                dat[count * 8 + 6]
+                            );
+                        }
                     }
 
                     count++;
@@ -163,36 +173,46 @@ namespace PhyicsRT
             }
         }
 
+        //更新ContactListener的状态
+        private void UpdateContactListenerState() {
+            foreach(var body in  bodysDictAddContactListener.Values)
+                body.FlushPhysicsBodyContactDataTick();
+        }
+
         /// <summary>
         /// [由PhysicsBody自动调用，请勿手动调用]
         /// </summary>
         /// <param name="id"></param>
         /// <param name="body"></param>
-        public void AddBody(int id, PhysicsBody body) {
+        internal void AddBody(int id, PhysicsBody body) {
             bodysList.add(body);
             bodysDict.Add(id, body);
+            if(body.AddContactListener) 
+                bodysDictAddContactListener.Add(id, body);
         }
         /// <summary>
         /// [由PhysicsBody自动调用，请勿手动调用]
         /// </summary>
         /// <param name="body"></param>
-        public void RemoveBody(PhysicsBody body) {
+        internal void RemoveBody(PhysicsBody body) {
             bodysList.remove(body);
             bodysDict.Remove(body.Id);
+            if(body.AddContactListener) 
+                bodysDictAddContactListener.Remove(body.Id);
         }      
         /// <summary>
         /// [由PhysicsConstraint自动调用，请勿手动调用]
         /// </summary>
         /// <param name="id"></param>
         /// <param name="body"></param>
-        public void AddConstraint(int id, PhysicsConstraint constraint) {
+        internal void AddConstraint(int id, PhysicsConstraint constraint) {
             constraintDict.Add(id, constraint);
         }
         /// <summary>
         /// [由PhysicsBody自动调用，请勿手动调用]
         /// </summary>
         /// <param name="body"></param>
-        public void RemoveConstraint(PhysicsConstraint constraint) {
+        internal void RemoveConstraint(PhysicsConstraint constraint) {
             constraintDict.Remove(constraint.Id);
         }
 
@@ -289,22 +309,32 @@ namespace PhyicsRT
             public PhysicsBody body;
         }
 
+        private fnOnBodyContactEventCallback _OnBodyContactEventCallback;
+        private fnOnConstraintBreakingCallback _OnConstraintBreakingCallback;
+        private fnOnBodyTriggerEventCallback _OnBodyTriggerEventCallback;
+
         private void OnConstraintBreakingCallback(IntPtr constraint, int id, float forceMagnitude, int removed) {
             var c = GetConstraintById(id);
             if(c != null && c.onBreaking != null) 
                 c.onBreaking(c, forceMagnitude, removed);
         }   
-        private void OnBodyTriggerEnterCallback(IntPtr body, IntPtr bodyOther, int id, int otherId) {
-            var sbody = GetBodyById(id);
-            var sbodyOther = GetBodyById(otherId);
-            if(sbody != null && sbody.onCollisionEnter != null) 
-                sbody.onCollisionEnter(sbody, sbodyOther);
+        private void OnBodyTiggerEventCallback(IntPtr body, IntPtr bodyOther, int id, int otherId, int ty) {
+            if(ty == 1) {
+                var sbody = GetBodyById(id);
+                var sbodyOther = GetBodyById(otherId);
+                if(sbody != null) 
+                    sbody.onTiggerEnter?.Invoke(sbody, sbodyOther);
+            } else {
+                var sbody = GetBodyById(id);
+                var sbodyOther = GetBodyById(otherId);
+                if(sbody != null) 
+                    sbody.onTiggerLeave?.Invoke(sbody, sbodyOther);
+            }
         }
-        private void OnBodyTriggerLeaveCallback(IntPtr body, IntPtr bodyOther, int id, int otherId) {
-            var sbody = GetBodyById(id);
-            var sbodyOther = GetBodyById(otherId);
-            if(sbody != null && sbody.onCollisionLeave != null) 
-                sbody.onCollisionLeave(sbody, sbodyOther);
+        private void OnBodyPointContactCallback(IntPtr body, IntPtr bodyOther, int id, int otherId, IntPtr dataPtr) {
+            PhysicsBody sbody = GetBodyById(id), sbodyOther = GetBodyById(otherId);
+            if(sbody != null && sbodyOther != null && sbodyOther != sbody)
+                sbody.OnBodyPointContactCallback(sbodyOther, Marshal.PtrToStructure<sPhysicsBodyContactData>(dataPtr));
         }
     }
 }

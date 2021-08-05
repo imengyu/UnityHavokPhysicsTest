@@ -1,11 +1,11 @@
 
-using PhyicsRT.Utils;
+using PhysicsRT.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace PhyicsRT
+namespace PhysicsRT
 {
     public enum MotionType {
         /// <summary>
@@ -58,44 +58,32 @@ namespace PhyicsRT
     }
     public enum CollidableQualityType
     {    
-        HK_COLLIDABLE_QUALITY_INVALID = -1,
+        Default = -1,
         /// Use this for fixed bodies.
-        HK_COLLIDABLE_QUALITY_FIXED = 0,
-
+        Fixed = 0,
         /// Use this for moving objects with infinite mass.
-        HK_COLLIDABLE_QUALITY_KEYFRAMED,
-
+        Keyframed,
         /// Use this for all your debris objects.
-        HK_COLLIDABLE_QUALITY_DEBRIS,
-
+        Debris,
         /// Use this for debris objects that should have simplified TOI collisions with fixed/landscape objects.
-        HK_COLLIDABLE_QUALITY_DEBRIS_SIMPLE_TOI,
-
+        DebrisSimpleTOI,
         /// Use this for moving bodies, which should not leave the world,
         /// but you rather prefer those objects to tunnel through the world than
         /// dropping frames because the engine .
-        HK_COLLIDABLE_QUALITY_MOVING,
-
+        Moving,
         /// Use this for all objects, which you cannot afford to tunnel through
         /// the world at all.
-        HK_COLLIDABLE_QUALITY_CRITICAL,
-
+        Critical,
         /// Use this for very fast objects.
-        HK_COLLIDABLE_QUALITY_BULLET,
-
+        Bullet,
         /// For user. If you want to use this, you have to modify hkpCollisionDispatcher::initCollisionQualityInfo()
-        HK_COLLIDABLE_QUALITY_USER,
-
+        User,
         /// Use this for rigid body character controllers.
-        HK_COLLIDABLE_QUALITY_CHARACTER,
-
+        Character,
         /// Use this for moving objects with infinite mass which should report contact points and TOI-collisions against all other bodies, including other fixed and keyframed bodies.
         ///
         /// Note that only non-TOI contact points are reported in collisions against debris-quality objects.
-        HK_COLLIDABLE_QUALITY_KEYFRAMED_REPORTING,
-
-        /// End of this list
-        HK_COLLIDABLE_QUALITY_MAX
+        KeyframedReporting,
     };
 
     [AddComponentMenu("PhysicsRT/Physics Body")]
@@ -123,7 +111,7 @@ namespace PhyicsRT
         MotionType m_MotionType = MotionType.Fixed;
         [SerializeField]
         [Tooltip("The quality type, used to specify when to use continuous physics.")]
-        CollidableQualityType m_CollidableQualityType = CollidableQualityType.HK_COLLIDABLE_QUALITY_INVALID;
+        CollidableQualityType m_CollidableQualityType = CollidableQualityType.Default;
         [SerializeField]
         float m_Mass = 1.0f;
         [SerializeField]
@@ -165,9 +153,15 @@ namespace PhyicsRT
         [SerializeField]
         [Tooltip("Is this body is Tigger ?")]
         private bool m_IsTigger = false;
+        [Tooltip("是否添加ContactListener，只有添加了ContactListener才可使用OnCollision事件")]
+        [SerializeField]
+        private bool m_AddContactListener = false;
         [Tooltip("在 Awake 时不自动创建刚体，设置为 false 后您需要手动调用 ForceReCreateShape 来创建刚体")]
         [SerializeField]
         public bool m_DoNotAutoCreateAtAwake = false;
+        [Tooltip("自动计算 CenterOfMass ")]
+        [SerializeField]
+        public bool m_AutoComputeCenterOfMass = true;
 
         private IntPtr ptr = IntPtr.Zero;
 
@@ -175,6 +169,10 @@ namespace PhyicsRT
         /// 在 Awake 时不自动创建刚体，设置为 false 后您需要手动调用 ForceReCreateShape 来创建刚体
         /// </summary>
         public bool DoNotAutoCreateAtAwake { get => m_DoNotAutoCreateAtAwake; set { m_DoNotAutoCreateAtAwake = value; } }
+        /// <summary>
+        /// 自动计算CenterOfMass（创建刚体后设置无效）
+        /// </summary>
+        public bool AutoComputeCenterOfMass { get => m_AutoComputeCenterOfMass; set { m_AutoComputeCenterOfMass = value; } }
         /// <summary>
         /// 获取或设置刚体碰撞层
         /// </summary>
@@ -245,6 +243,17 @@ namespace PhyicsRT
         /// 获取或设置刚体是否是触发器，触发器才可以接受碰撞事件（创建刚体后设置无效）
         /// </summary>
         public bool IsTigger { get => m_IsTigger; set { m_IsTigger = value; } }
+        /// <summary>
+        /// 是否添加ContactListener，只有添加了ContactListener才可使用OnCollision事件（创建刚体后设置无效）
+        /// </summary>
+        public bool AddContactListener { 
+            get => m_AddContactListener; 
+            set { 
+                if(ptr != IntPtr.Zero)
+                    throw new Exception("Body is created, do not modify this after creation");
+                m_AddContactListener = value; 
+            } 
+        }
         /// <summary>
         /// 获取或设置刚体的质心
         /// </summary>
@@ -390,7 +399,7 @@ namespace PhyicsRT
         private IntPtr currentShapeMassProperties = IntPtr.Zero;
         private bool nextCreateForce = false;
 
-        private IntPtr GetPtr() { return ptr; }
+        public IntPtr GetPtr() { return ptr; }
         private IntPtr GetShapeBody() {
 
             var shape = GetComponent<PhysicsShape>();
@@ -401,7 +410,8 @@ namespace PhyicsRT
             }
 
             var s = shape.GetShapeBody(nextCreateForce);
-            currentShapeMassProperties = shape.ComputeMassProperties(m_Mass);
+            if(CenterOfMass != Vector3.zero)
+                currentShapeMassProperties = shape.ComputeMassProperties(m_Mass);
             return s;
         }
         private void ReleaseShapeBody() {
@@ -431,6 +441,8 @@ namespace PhyicsRT
                 m_Mass, 
                 PhysicsApi.API.BoolToInt(gameObject.activeSelf), 
                 m_Layer,
+                m_IsTigger,
+                m_AddContactListener,
                 m_GravityFactor,
                 m_LinearDamping,
                 m_AngularDamping,
@@ -444,6 +456,7 @@ namespace PhyicsRT
 
             Id = PhysicsApi.API.GetRigidBodyId(ptr);
             CurrentPhysicsWorld.AddBody(Id, this);
+            ReApplyForce();
 
             nextCreateForce = false;
         }
@@ -626,38 +639,206 @@ namespace PhyicsRT
             }
         }
     
+        //暂时存储刚体还未创建时用户设置的力，创建后统一设置
+        private enum StartTemForceType {
+           Force,
+           ForceAtPoint,
+           Torque,
+           LinearImpulse,
+           PointImpulse,
+           AngularImpulse
+        }
+        private class StartTemForce {
+            public StartTemForceType type;
+            public Vector3 force;
+            public Vector3 point;
+            public StartTemForce(StartTemForceType type, Vector3 force, Vector3 point) {
+                this.type = type;
+                this.force = force;
+                this.point = point;
+            }
+
+        }
+        private List<StartTemForce> fTemp = new List<StartTemForce>();
+        private void ReApplyForce() {
+            if(ptr != IntPtr.Zero) {
+                fTemp.ForEach((a) => {
+                    switch(a.type) {
+                        case StartTemForceType.Force: 
+                            ApplyForce(a.force);
+                            break;
+                        case StartTemForceType.ForceAtPoint: 
+                            ApplyForceAtPoint(a.force, a.point);
+                            break;
+                        case StartTemForceType.Torque: 
+                            ApplyTorque(a.force);
+                            break;
+                        case StartTemForceType.LinearImpulse: 
+                            ApplyForce(a.force);
+                            break;
+                        case StartTemForceType.PointImpulse: 
+                            ApplyPointImpulse(a.force, a.point);
+                            break;
+                        case StartTemForceType.AngularImpulse: 
+                            ApplyAngularImpulse(a.force);
+                            break;
+                    }
+                });
+                fTemp.Clear();
+            }
+        }
+
+        /// <summary>
+        /// Applies a force to the rigid body. The force is applied to the center of mass.
+        /// </summary>
+        /// <param name="force"></param>
         public void ApplyForce(Vector3 force) {
             if(ptr != IntPtr.Zero)
                 PhysicsApi.API.RigidBodyApplyForce(ptr, Time.deltaTime, force);
+            else
+                fTemp.Add(new StartTemForce(StartTemForceType.Force, force, Vector3.zero));
         }
+        /// <summary>
+        /// Applies a force (in world space) to the rigid body at the point p in world space.
+        /// </summary>
+        /// <param name="force"></param>
+        /// <param name="point"></param>
         public void ApplyForceAtPoint(Vector3 force, Vector3 point) {
             if(ptr != IntPtr.Zero)
                 PhysicsApi.API.RigidBodyApplyForceAtPoint(ptr, Time.deltaTime, force, point);
+            else
+                fTemp.Add(new StartTemForce(StartTemForceType.ForceAtPoint, force, point));
         }
+        /// <summary>
+        /// Applies the specified torque (in world space) to the rigid body.
+        /// Specify the torque as an Vector3. The direction of the vector indicates the axis (in world space) that you want the body to rotate around, and the magnitude of the vector indicates the strength of the force applied. The change in the body's angular velocity after torques are applied is proportional to the simulation delta time value and inversely proportional to the body's  inertia. 
+        /// </summary>
+        /// <param name="torque"></param>
         public void ApplyTorque(Vector3 torque) {
             if(ptr != IntPtr.Zero)
                 PhysicsApi.API.RigidBodyApplyTorque(ptr, Time.deltaTime, torque);
+            else
+                fTemp.Add(new StartTemForce(StartTemForceType.Torque, torque, Vector3.zero));
         }
+        /// <summary>
+        /// Applies an impulse (in world space) to the center of mass.
+        /// </summary>
+        /// <param name="imp"></param>
         public void ApplyLinearImpulse(Vector3 imp) {
             if(ptr != IntPtr.Zero)
                 PhysicsApi.API.RigidBodyApplyLinearImpulse(ptr, imp);
+            else
+                fTemp.Add(new StartTemForce(StartTemForceType.LinearImpulse, imp, Vector3.zero));
         }
+        /// <summary>
+        /// Apply an impulse at the point p in world space.
+        /// </summary>
+        /// <param name="imp"></param>
+        /// <param name="point"></param>
         public void ApplyPointImpulse(Vector3 imp, Vector3 point) {
             if(ptr != IntPtr.Zero)
                 PhysicsApi.API.RigidBodyApplyPointImpulse(ptr, imp, point);
+            else
+                fTemp.Add(new StartTemForce(StartTemForceType.PointImpulse, imp, point));
         }
-    
-    
-        public delegate void OnBodyTriggerCollCallback(PhysicsBody body, PhysicsBody other);
+        /// <summary>
+        /// Apply an instantaneous change in angular velocity around center of mass.
+        /// </summary>
+        /// <param name="imp"></param>
+        public void ApplyAngularImpulse(Vector3 imp) {
+            if(ptr != IntPtr.Zero)
+                PhysicsApi.API.RigidBodyApplyAngularImpulse(ptr, imp);
+            else
+                fTemp.Add(new StartTemForce(StartTemForceType.AngularImpulse, imp, Vector3.zero));
+        }
+
+        public delegate void OnBodyTiggerCollCallback(PhysicsBody body, PhysicsBody other);
+        public delegate void OnBodyCollisionCallback(PhysicsBody body, PhysicsBody other, PhysicsBodyCollisionInfo info);
+        public delegate void OnBodyCollisionLeaveCallback(PhysicsBody body, PhysicsBody other);
 
         /// <summary>
-        /// 刚体进入时的事件（为Tigger时有效）
+        /// Tigger中刚体进入时的事件（为Tigger时有效）
         /// </summary>
-        public OnBodyTriggerCollCallback onCollisionEnter;
+        public OnBodyTiggerCollCallback onTiggerEnter;
         /// <summary>
-        /// 刚体离开时的事件（为Tigger时有效）
+        /// Tigger中刚体离开时的事件（为Tigger时有效）
         /// </summary>
-        public OnBodyTriggerCollCallback onCollisionLeave;
+        public OnBodyTiggerCollCallback onTiggerLeave;
+
+        /// <summary>
+        /// 刚体碰撞进入时的事件（AddContactListener为true时有效）
+        /// </summary>
+        public OnBodyCollisionCallback onCollisionEnter;
+        /// <summary>
+        /// 刚体碰撞离开时的事件（AddContactListener为true时有效）
+        /// </summary>
+        public OnBodyCollisionLeaveCallback onCollisionLeave;
+        /// <summary>
+        /// 刚体碰撞离开时的事件（AddContactListener为true时有效）
+        /// </summary>
+        public OnBodyCollisionCallback onCollisionStay;
+
+        private enum PhysicsBodyContactDataState {
+            NEW_ADD,
+            TWICE_ADD,
+            FLUSH_FINISHED,
+        }
+        private struct PhysicsBodyContactData {
+            public PhysicsBody body;
+            public sPhysicsBodyContactData data;
+            public PhysicsBodyContactDataState state;
+            public PhysicsBodyContactData(PhysicsBody body, sPhysicsBodyContactData data) {
+                this.body = body;
+                this.data = data;
+                state = PhysicsBodyContactDataState.NEW_ADD;
+            }
+        }
+        private Dictionary<int, PhysicsBodyContactData> currentFramEnterBodies = new Dictionary<int, PhysicsBodyContactData>();
+
+        internal void FlushPhysicsBodyContactDataTick() {
+            List<int> needRemoveData = new List<int>();
+            foreach(var id in currentFramEnterBodies.Keys) {
+                var d = currentFramEnterBodies[id];
+                switch(d.state) {
+                    case PhysicsBodyContactDataState.NEW_ADD: 
+                        onCollisionEnter?.Invoke(this, d.body, new PhysicsBodyCollisionInfo(d.data));
+                        break;
+                    case PhysicsBodyContactDataState.TWICE_ADD: 
+                        onCollisionStay?.Invoke(this, d.body, new PhysicsBodyCollisionInfo(d.data));
+                        d.state = PhysicsBodyContactDataState.FLUSH_FINISHED;
+                        break;
+                    case PhysicsBodyContactDataState.FLUSH_FINISHED: 
+                        onCollisionLeave?.Invoke(this, d.body);
+                        needRemoveData.Add(id);
+                        break;
+                }
+            }
+            foreach(var id in needRemoveData)
+                currentFramEnterBodies.Remove(id);
+        }
+        internal void OnBodyPointContactCallback(PhysicsBody other, sPhysicsBodyContactData data) {
+            if(currentFramEnterBodies.TryGetValue(other.Id, out var d)) {
+                d.data = data;
+                d.state = PhysicsBodyContactDataState.TWICE_ADD;
+            } else {
+                currentFramEnterBodies.Add(other.Id, new PhysicsBodyContactData(other, data));
+            }
+        }
+    }
+    public class PhysicsBodyCollisionInfo {
+        public float distance { get; private set; }
+        public Vector3 position { get; private set; }
+        public Vector3 normal { get; private set; }
+        public Vector3 separatingNormal { get; private set; }
+        public float separatingVelocity { get; private set; }
+
+        internal PhysicsBodyCollisionInfo(sPhysicsBodyContactData data) {
+            distance = data.distance;
+            separatingVelocity = data.separatingVelocity;
+            position = new Vector3(data.pos[0], data.pos[1], data.pos[2]);
+            separatingNormal = new Vector3(data.separatingNormal[0], data.separatingNormal[1], data.separatingNormal[2]);
+            normal = new Vector3(data.normal[0], data.normal[1], data.normal[2]);
+        }
     }
     public class PhysicsBodyNotCreateException : Exception {
         public PhysicsBodyNotCreateException() : base("Body is not created yet.") {}

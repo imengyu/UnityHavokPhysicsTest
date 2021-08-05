@@ -2,8 +2,10 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-namespace PhyicsRT
+namespace PhysicsRT
 {
+    [DefaultExecutionOrder(300)]
+    [RequireComponent(typeof(PhysicsBody))]
     public class PhysicsConstraint : MonoBehaviour
     {
         public int Id { get; protected set; }
@@ -25,7 +27,7 @@ namespace PhyicsRT
             StartCoroutine(LateCreate());
         }
         private IEnumerator LateCreate() {
-            yield return new WaitForSeconds(0.2f); 
+            yield return new WaitForSeconds(0.8f); 
             if(!m_DoNotAutoCreateAtAwake) {
                 Create();
             }
@@ -82,18 +84,26 @@ namespace PhyicsRT
         /// </summary>
         public virtual void Create() {}
         
-        protected bool CreatePre() {
+        protected IntPtr CreatePre() {
             CurrentPhysicsWorld = PhysicsWorld.GetCurrentScensePhysicsWorld();
             if(CurrentPhysicsWorld == null) {
                 Debug.LogWarning("Not found PhysicsWorld in this scense, please add it before use PhysicsBody.");
-                return false;
+                return IntPtr.Zero;
             }
-            return true;
+            return GetComponent<PhysicsBody>().GetPtr();
         }
         protected void CreateLastStep(IntPtr ptr) {
             this.ptr = ptr;
             Id = PhysicsApi.API.GetConstraintId(ptr);
             CurrentPhysicsWorld.AddConstraint(Id, this);
+        }
+        protected sConstraintBreakData GetConstraintBreakData() {
+            sConstraintBreakData data = new sConstraintBreakData();
+            data.breakable = m_Breakable;
+            data.threshold = m_Threshold;
+            data.maximumAngularImpulse = m_MaximumAngularImpulse;
+            data.maximumLinearImpulse = m_MaximumLinearImpulse;
+            return data;
         }
 
         private bool GetConstraintBroken() { 

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PhyicsRT.Utils
+namespace PhysicsRT.Utils
 {
 	interface LinkedListItem<T>
     {

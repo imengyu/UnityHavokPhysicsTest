@@ -160,16 +160,20 @@ void DestroyRigidBody(sPhysicsRigidbody* body)
 	TRY_BEGIN
 		CHECK_PARAM_PTR(body);
 
-	if (body->collisionListener) {
-		body->rigidBody->removeContactListener(body->collisionListener);
-		delete body->collisionListener;
-		body->collisionListener = nullptr;
-	}
-	if (body->world && body->world->physicsWorld) {
+	
+	if (body->world) {
+		if (body->world->physicsWorld) {
 
-		if (initStruct.mulithread) body->world->physicsWorld->markForWrite();
-		body->world->physicsWorld->removeEntity(body->rigidBody);
-		if (initStruct.mulithread) body->world->physicsWorld->unmarkForWrite();
+			if (initStruct.mulithread) body->world->physicsWorld->markForWrite();
+			body->world->physicsWorld->removeEntity(body->rigidBody);
+			if (initStruct.mulithread) body->world->physicsWorld->unmarkForWrite();
+
+			if (body->collisionListener) {
+				body->rigidBody->removeContactListener(body->collisionListener);
+				delete body->collisionListener;
+				body->collisionListener = nullptr;
+			}
+		}
 
 		body->world->bodyList.remove(body);
 	}

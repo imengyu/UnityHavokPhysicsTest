@@ -281,8 +281,10 @@ sConvexHullResult* Build3DPointsConvexHull(float* points, int numPoints) {
 		hkPoints.pushBack(F3TohkVec4(points[i * 3 + 0], points[i * 3 + 1], points[i * 3 + 2]));
 
 	hkgpConvexHull* convexHull = new hkgpConvexHull();
-	if (convexHull->build(hkPoints.begin(), numPoints) == -1)
+	if (convexHull->build(hkPoints.begin(), numPoints) == -1) {
 		CallbackWithError("ConvexHull failed! ");
+		return nullptr;
+	}
 
 	convexHull->buildIndices();
 
@@ -313,8 +315,8 @@ sConvexHullResult* Build3DFromPlaneConvexHull(float* panels, int numPanels) {
 
 	// generate a convex geometry
 	hkArray<hkVector4> hkPanels;
-	for (int i = 0; i < numPanels * 4; i += 3)
-		hkPanels.pushBack(F3TohkVec4(panels[i + 0], panels[i + 1], panels[i + 2]));
+	for (int i = 0; i < numPanels; i ++)
+		hkPanels.pushBack(hkVector4(panels[i * 4 + 0], panels[i * 4 + 1], panels[i * 4 + 2], panels[i * 4 + 3]));
 
 	hkgpConvexHull* convexHull = new hkgpConvexHull();
 	convexHull->buildFromPlanes(hkPanels.begin(), numPanels);

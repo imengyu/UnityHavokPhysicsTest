@@ -9,6 +9,7 @@ struct sPhysicsBodyContactData {
 	float normal[3];
 	float separatingNormal[3];
 	float separatingVelocity;
+	int isRemoved;
 };
 
 typedef void(__cdecl* fnOnConstraintBreakingCallback)(struct sPhysicsConstraints* constraint, int id, float forceMagnitude, int removed);
@@ -45,7 +46,7 @@ struct sRayCastResult {
 };
 
 sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance,
-	bool bContinuous, bool bVisualDebugger, unsigned int layerMask, unsigned int* layerToMask,
+	bool bContinuous, bool bVisualDebugger, unsigned int layerMask, unsigned int* layerToMask, int stableSolverOn,
 	fnOnConstraintBreakingCallback onConstraintBreakingCallback, fnOnBodyTriggerEventCallback onBodyTriggerEventCallback, 
 	fnOnBodyContactEventCallback onBodyContactEventCallback);
 void DestroyPhysicsWorld(sPhysicsWorld* world);

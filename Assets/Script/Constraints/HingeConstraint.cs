@@ -6,8 +6,6 @@ namespace PhysicsRT {
     [AddComponentMenu("PhysicsRT/Constraints/HingeConstraint")]
     public class HingeConstraint : PhysicsConstraint {
 
-        public PhysicsBody ConnectedBody;
-        
         public Vector3 Povit;
         public Vector3 Axis = Vector3.forward;
 

@@ -116,7 +116,7 @@ namespace PhysicsRT
         float m_Mass = 1.0f;
         [SerializeField]
         [Tooltip("这适用于物体的线速度，随时间减小。")]
-        float m_LinearDamping = 0.01f;
+        float m_LinearDamping = 0.0f;
         [SerializeField]
         [Tooltip("这适用于物体的角速度，随时间减小角速度。")]
         float m_AngularDamping = 0.05f;
@@ -373,7 +373,7 @@ namespace PhysicsRT
             DestroyBody();
         }
         private IEnumerator LateCreate() {
-            yield return new WaitForSeconds(0.2f); 
+            yield return new WaitForSeconds(0.05f); 
             if(!m_DoNotAutoCreateAtAwake)
                 CreateBody();
         }
@@ -454,8 +454,11 @@ namespace PhysicsRT
                 m_MaxAngularVelocity,
                 currentShapeMassProperties);
 
+            TryCreateConstant();
+
             Id = PhysicsApi.API.GetRigidBodyId(ptr);
             CurrentPhysicsWorld.AddBody(Id, this);
+            
             ReApplyForce();
 
             nextCreateForce = false;
@@ -477,6 +480,18 @@ namespace PhysicsRT
             ptr = IntPtr.Zero;
         }
     
+        //创建当前刚体的约束
+        private void TryCreateConstant() {
+            var constants = GetComponents<PhysicsConstraint>();
+            for(int i = 0; i < constants.Length; i++) 
+                constants[i].TryCreate();
+            foreach(PhysicsConstraint c in pendingCreateConstant)
+                c.TryCreate();
+            pendingCreateConstant.Clear();
+        }
+        private List<PhysicsConstraint> pendingCreateConstant = new List<PhysicsConstraint>();
+        internal void AddPendingCreateConstant(PhysicsConstraint c) { pendingCreateConstant.Add(c); }
+
         private MotionType oldMotionType = MotionType.Fixed;
         private float oldMass = 0;
         private float oldLinearDamping =  0;
@@ -781,47 +796,61 @@ namespace PhysicsRT
         private enum PhysicsBodyContactDataState {
             NEW_ADD,
             TWICE_ADD,
-            FLUSH_FINISHED,
+            END,
         }
-        private struct PhysicsBodyContactData {
+        private class PhysicsBodyContactData : LinkedListItem<PhysicsBodyContactData> {
             public PhysicsBody body;
             public sPhysicsBodyContactData data;
             public PhysicsBodyContactDataState state;
+            public bool entered = false;
+            public bool needLeave = false;
             public PhysicsBodyContactData(PhysicsBody body, sPhysicsBodyContactData data) {
                 this.body = body;
                 this.data = data;
                 state = PhysicsBodyContactDataState.NEW_ADD;
             }
+
+            public PhysicsBodyContactData prev { get; set; }
+            public PhysicsBodyContactData next { get; set; }
         }
         private Dictionary<int, PhysicsBodyContactData> currentFramEnterBodies = new Dictionary<int, PhysicsBodyContactData>();
+        private SimpleLinkedList<PhysicsBodyContactData> currentFramEnterBodiesList = new SimpleLinkedList<PhysicsBodyContactData>();
 
         internal void FlushPhysicsBodyContactDataTick() {
             List<int> needRemoveData = new List<int>();
-            foreach(var id in currentFramEnterBodies.Keys) {
-                var d = currentFramEnterBodies[id];
+            PhysicsBodyContactData d = currentFramEnterBodiesList.getBegin();
+            while(d != null) {
                 switch(d.state) {
                     case PhysicsBodyContactDataState.NEW_ADD: 
                         onCollisionEnter?.Invoke(this, d.body, new PhysicsBodyCollisionInfo(d.data));
+                        d.state = d.needLeave ? PhysicsBodyContactDataState.END : PhysicsBodyContactDataState.TWICE_ADD;
+                        d.entered = true;
                         break;
                     case PhysicsBodyContactDataState.TWICE_ADD: 
                         onCollisionStay?.Invoke(this, d.body, new PhysicsBodyCollisionInfo(d.data));
-                        d.state = PhysicsBodyContactDataState.FLUSH_FINISHED;
                         break;
-                    case PhysicsBodyContactDataState.FLUSH_FINISHED: 
+                    case PhysicsBodyContactDataState.END: 
                         onCollisionLeave?.Invoke(this, d.body);
-                        needRemoveData.Add(id);
+                        currentFramEnterBodies.Remove(d.body.Id);
+                        currentFramEnterBodiesList.remove(d);
                         break;
                 }
+                d = d.next;
             }
-            foreach(var id in needRemoveData)
-                currentFramEnterBodies.Remove(id);
         }
         internal void OnBodyPointContactCallback(PhysicsBody other, sPhysicsBodyContactData data) {
             if(currentFramEnterBodies.TryGetValue(other.Id, out var d)) {
-                d.data = data;
-                d.state = PhysicsBodyContactDataState.TWICE_ADD;
+                if(data.isRemoved == 1) {
+                    if(d.entered) d.state = PhysicsBodyContactDataState.END;
+                    else d.needLeave = true;
+                } else {
+                    d.data = data;
+                    d.state = PhysicsBodyContactDataState.TWICE_ADD;
+                }
             } else {
-                currentFramEnterBodies.Add(other.Id, new PhysicsBodyContactData(other, data));
+                d = new PhysicsBodyContactData(other, data);
+                currentFramEnterBodies.Add(other.Id, d);
+                currentFramEnterBodiesList.add(d);
             }
         }
     }

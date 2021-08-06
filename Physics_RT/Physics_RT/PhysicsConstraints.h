@@ -36,7 +36,7 @@ int GetConstraintId(sPhysicsConstraints* constraint);
 void SetConstraintBroken(sPhysicsConstraints* constraint, int broken, float force);
 void SetConstraintEnable(sPhysicsConstraints* constraint, int enable);
 sPhysicsConstraints* CreateBallAndSocketConstraint(sPhysicsRigidbody* body, sPhysicsRigidbody* otherBody, spVec3 povit, sConstraintBreakData* breakable);
-sPhysicsConstraints* CreateFixedConstraint(sPhysicsRigidbody* body, sPhysicsRigidbody* otherBody, sConstraintBreakData* breakable);
+sPhysicsConstraints* CreateFixedConstraint(sPhysicsRigidbody* body, sPhysicsRigidbody* otherBody, spVec3 povit, sConstraintBreakData* breakable);
 sPhysicsConstraints* CreateStiffSpringConstraint(sPhysicsRigidbody* body, sPhysicsRigidbody* otherBody, spVec3 povitAW, spVec3 povitBW, float springMin, float springMax, sConstraintBreakData* breakable);
 sPhysicsConstraints* CreateHingeConstraint(sPhysicsRigidbody* body, sPhysicsRigidbody* otherBody, spVec3 povit, spVec3 axis, sConstraintBreakData* breakable);
 sPhysicsConstraints* CreateLimitedHingeConstraint(sPhysicsRigidbody* body, sPhysicsRigidbody* otherBody, spVec3 povit, spVec3 axis, float agularLimitMin, float agularLimitMax, sConstraintBreakData* breakable, sConstraintMotorData* motorData);

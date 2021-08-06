@@ -6,8 +6,6 @@ namespace PhysicsRT {
     [AddComponentMenu("PhysicsRT/Constraints/StiffSpringConstraint")]
     public class StiffSpringConstraint : PhysicsConstraint {
 
-        public PhysicsBody ConnectedBody;
-
         public Vector3 PovitAW;
         public Vector3 PovitBW;
         public float SpringMin;

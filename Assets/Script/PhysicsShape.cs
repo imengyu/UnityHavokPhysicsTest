@@ -81,7 +81,19 @@ namespace PhysicsRT
         public float ShapeConvexRadius { get => m_ShapeConvexRadius; set => m_ShapeConvexRadius = value; }
         public float ShapeHeight { get => m_ShapeHeight; set => m_ShapeHeight = value; }
         public int ShapeSideCount { get => m_ShapeSideCount; set => m_ShapeSideCount = value; }
-        public Vector3 ShapeScale { get => m_Scale; set => m_Scale = value; }
+        public Vector3 ShapeScale {
+            get {
+                switch(m_Wrap) {
+                    case ShapeWrap.TransformShape: 
+                        return m_Scale;
+                    default:
+                    case ShapeWrap.None:
+                    case ShapeWrap.TranslateShape: 
+                        return Vector3.one;
+                }
+            }
+            set => m_Scale = value; 
+        }
         public Vector3 ShapeRotation { get => m_Rotation; set => m_Rotation = value; }
         public Vector3 ShapeTranslation { get => m_Translation; set => m_Translation = value; }
         public float MinimumSkinnedVertexWeight { get => m_MinimumSkinnedVertexWeight; set => m_MinimumSkinnedVertexWeight = value; }
@@ -252,31 +264,81 @@ namespace PhysicsRT
                         break;
                     }
             }
-    
-            //Create Wrap shape
-            switch(m_Wrap) {
-                case ShapeWrap.None:
-                    ptr = shapeRealPtr;
-                    break;
-                case ShapeWrap.TransformShape:
-                    {
-                        Quaternion quaternion = Quaternion.Euler(ShapeRotation.x, ShapeRotation.y, ShapeRotation.z);
-                        IntPtr posPtr = PhysicsApi.API.CreateTransform(
-                            ShapeTranslation.x, ShapeTranslation.y, ShapeTranslation.z,
-                            quaternion.x, quaternion.y, quaternion.z, quaternion.w,
-                            ShapeScale.x, ShapeScale.y, ShapeScale.z
-                        );
-                        ptr = PhysicsApi.API.CreateConvexTransformShape(shapeRealPtr, posPtr);
-                        PhysicsApi.API.DestroyTransform(posPtr);
-                        break;
-                    }
-                case ShapeWrap.TranslateShape:
-                    {
-                        ptr = PhysicsApi.API.CreateConvexTranslateShape(shapeRealPtr, ShapeTranslation);
-                        break;
-                    }
+
+            //获取父级，如果父级是容器的话，那么需要使用TransformShape包装
+            var parentShape = transform.parent != null ? transform.parent.GetComponent<PhysicsShape>() : null;
+            if(parentShape != null && parentShape.m_ShapeType == ShapeType.List) {
+                if(transform.localPosition != Vector3.zero && transform.localRotation.eulerAngles == Vector3.zero && transform.localScale == Vector3.one) {
+                    //只有位置更改，选择TranslateShape
+                    ptr = PhysicsApi.API.CreateConvexTranslateShape(shapeRealPtr, ShapeTranslation + transform.localPosition);
+                } else if(transform.localPosition != Vector3.zero || transform.localRotation.eulerAngles != Vector3.zero || transform.localScale != Vector3.one)  {
+                    //三个任意一个更改，选择TransformShape
+                    var pos = ShapeTranslation + transform.localPosition;
+                    var quaternion = Quaternion.Euler(ShapeRotation + transform.localRotation.eulerAngles);
+                    var scale = GetScaleMaxSame(Vector3.Scale(ShapeScale, transform.localScale));
+
+                    IntPtr posPtr = PhysicsApi.API.CreateTransform(
+                        pos.x, pos.y, pos.z,
+                        quaternion.x, quaternion.y, quaternion.z, quaternion.w,
+                        scale.x, scale.y, scale.z
+                    );
+                    ptr = PhysicsApi.API.CreateConvexTransformShape(shapeRealPtr, posPtr);
+                    PhysicsApi.API.DestroyTransform(posPtr);
+                } else CreateDefaultWrapShape();
+            } else CreateDefaultWrapShape();
+        }
+        private Vector3 GetScaleMaxSame(Vector3 v) {
+            if((v.x == v.y && v.y == v.z) ||  m_ShapeType == ShapeType.Box || m_ShapeType == ShapeType.ConvexHull) 
+                return v;
+            else {
+                //其他种类的碰撞体不允许不正的缩放系数，这里改成最大的相同的缩放系数
+                var max = Mathf.Max(v.x, v.y, v.z);
+                return new Vector3(max, max, max);
             }
         }
+        //创建默认包装
+        private void CreateDefaultWrapShape() {
+            //如果当前shape直接由PhysicsBody控制，并且缩放不为1，则需要包裹TransformShape以调整缩放比例 
+            var body = GetComponent<PhysicsBody>();
+            if(body != null && transform.lossyScale != Vector3.one) {
+                var scale = GetScaleMaxSame(transform.lossyScale);
+                var rot = Quaternion.Euler(0,0,0);
+                IntPtr posPtr = PhysicsApi.API.CreateTransform(
+                    0, 0, 0, rot.x, rot.y, rot.z, rot.w,
+                    scale.x, scale.y, scale.z
+                );
+                ptr = PhysicsApi.API.CreateConvexTransformShape(shapeRealPtr, posPtr);
+                PhysicsApi.API.DestroyTransform(posPtr);
+            } else {
+                //Create Wrap shape
+                switch(m_Wrap) {
+                    case ShapeWrap.None:
+                        ptr = shapeRealPtr;
+                        break;
+                    case ShapeWrap.TransformShape:
+                        {
+                            var pos = ShapeTranslation;
+                            var quaternion = Quaternion.Euler(ShapeRotation);
+                            var scale = ShapeScale;
+
+                            IntPtr posPtr = PhysicsApi.API.CreateTransform(
+                                pos.x, pos.y, pos.z,
+                                quaternion.x, quaternion.y, quaternion.z, quaternion.w,
+                                scale.x, scale.y, scale.z
+                            );
+                            ptr = PhysicsApi.API.CreateConvexTransformShape(shapeRealPtr, posPtr);
+                            PhysicsApi.API.DestroyTransform(posPtr);
+                            break;
+                        }
+                    case ShapeWrap.TranslateShape:
+                        {
+                            ptr = PhysicsApi.API.CreateConvexTranslateShape(shapeRealPtr, ShapeTranslation);
+                            break;
+                        }
+                }
+            }
+        }
+        //释放
         private void DestroyShape(bool forceRecreate = false) {
             if(ptr != shapeRealPtr) {
                 if(shapeRealPtr != IntPtr.Zero) {                
@@ -292,6 +354,7 @@ namespace PhysicsRT
                 ptr = IntPtr.Zero;
             }
         }
+        //获取子级Shape
         private IntPtr GetChildernShapes(bool forceRecreate, bool withChildTransforms, out int childCount, ref IntPtr outChildTransforms, ref List<IntPtr> childernTransforms)
         {
             //获取子级 PhysicsShape 的指针
@@ -309,7 +372,7 @@ namespace PhysicsRT
                         childernTransforms.Add(PhysicsApi.API.CreateTransform(
                             shape.transform.localPosition.x, shape.transform.localPosition.y, shape.transform.localPosition.z,
                             shape.transform.localRotation.x, shape.transform.localRotation.y, shape.transform.localRotation.z, shape.transform.localRotation.w,
-                            1, 1, 1
+                            shape.transform.localScale.x, shape.transform.localScale.y, shape.transform.localScale.z
                         ));
                     }
                 }
@@ -361,16 +424,16 @@ namespace PhysicsRT
             {
                 case ShapeType.Box:
                 case ShapeType.Plane:
-                    ShapeSize = Vector3.Scale(bounds.size, transform.localScale);
+                    ShapeSize = bounds.size;
                     ShapeTranslation = bounds.center;
                     break;
                 case ShapeType.Capsule:
                 case ShapeType.Cylinder:
-                    ShapeRadius = bounds.size.x / 2 * transform.localScale.x;
-                    ShapeHeight = bounds.size.y * transform.localScale.y;
+                    ShapeRadius = bounds.size.x / 2;
+                    ShapeHeight = bounds.size.y;
                     break;
                 case ShapeType.Sphere:
-                    ShapeRadius = bounds.size.x * transform.localScale.x / 2;
+                    ShapeRadius = bounds.size.x / 2;
                     break;
             }
         }

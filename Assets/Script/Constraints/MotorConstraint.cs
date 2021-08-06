@@ -5,15 +5,25 @@ namespace PhysicsRT {
 
     public class MotorConstraint : PhysicsConstraint {
 
+        [HideInInspector]
         public bool motorEnable = false;
+        [HideInInspector]
         public bool motorSpring = false;
+        [HideInInspector]
         public float motorTau = 0.2f;
+        [HideInInspector]
         public float motorDamping = 0.2f;
+        [HideInInspector]
         public float motorProportionalRecoveryVelocity = 0;
+        [HideInInspector]
         public float motorConstantRecoveryVelocity = 0;
+        [HideInInspector]
         public float motorMinForce = -1e6f;
-        public float motorMaxForce = -1e6f;
+        [HideInInspector]
+        public float motorMaxForce = 1e6f;
+        [HideInInspector]
         public float motorSpringConstant = 0;
+        [HideInInspector]
         public float motorSpringDamping = 0.3f;
 
         protected sConstraintMotorData GetConstraintMotorData() {

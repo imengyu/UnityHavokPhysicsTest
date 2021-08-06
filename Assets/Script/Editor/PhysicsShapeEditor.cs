@@ -273,7 +273,11 @@ class PhysicsShapeEditor : Editor
             case ShapeWrap.TransformShape:
                 EditorGUILayout.PropertyField(pTranslation);
                 EditorGUILayout.PropertyField(pRotation);
-                EditorGUILayout.PropertyField(pScale);
+
+                var shapeType = (ShapeType)pShapeType.enumValueIndex;
+                if(shapeType == ShapeType.Box || shapeType == ShapeType.ConvexHull)
+                    EditorGUILayout.PropertyField(pScale);
+
                 break;
             case ShapeWrap.TranslateShape:
                 EditorGUILayout.PropertyField(pTranslation);

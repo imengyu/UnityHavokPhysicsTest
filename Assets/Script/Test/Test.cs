@@ -8,9 +8,11 @@ public class Test : MonoBehaviour {
     public float cameraSpeed = 4;
     public float shootForce = 100;
     public GameObject ballPrefab = null;
+    public int targetFps = 60;
 
     private void Start() {  
         mainCamera = GetComponent<Camera>();
+        Application.targetFrameRate = targetFps;
     }
     private void Update() {
         //空格键抬升高度

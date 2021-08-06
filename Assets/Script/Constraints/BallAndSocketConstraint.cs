@@ -7,7 +7,6 @@ namespace PhysicsRT {
     public class BallAndSocketConstraint : PhysicsConstraint {
 
         public Vector3 Povit;
-        public PhysicsBody ConnectedBody;
 
         public override void Create() {
             if(ConnectedBody == null) 

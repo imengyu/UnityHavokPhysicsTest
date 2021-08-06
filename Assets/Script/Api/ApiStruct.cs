@@ -100,5 +100,6 @@ namespace PhysicsRT
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3, ArraySubType = UnmanagedType.R4)]
     public float[] separatingNormal;
     public float separatingVelocity;
+    public int isRemoved;
   }
 }

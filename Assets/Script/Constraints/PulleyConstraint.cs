@@ -6,7 +6,6 @@ namespace PhysicsRT {
     [AddComponentMenu("PhysicsRT/Constraints/PulleyConstraint")]
     public class PulleyConstraint : PhysicsConstraint {
 
-        public PhysicsBody ConnectedBody;
         public Vector3 pivotAW;
         public Vector3 pivotBW;
         public Vector3 pulleyPivotAW;

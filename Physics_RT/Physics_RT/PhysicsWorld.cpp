@@ -3,6 +3,7 @@
 #include <list>
 #include <Physics2012/Collide/Query/Collector/RayCollector/hkpAllRayHitCollector.h> 
 #include <Physics2012/Collide/Query/Collector/RayCollector/hkpClosestRayHitCollector.h> 
+#include <Physics2012/Dynamics/Constraint/Util/hkpConstraintStabilizationUtil.h>
 
 extern hkJobQueue* jobQueue;
 extern hkJobThreadPool* threadPool;
@@ -17,7 +18,7 @@ void lateDeleteWordInfo() {
 }
 
 sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance, 
-	bool bContinuous, bool bVisualDebugger, unsigned int layerMask, unsigned int *layerToMask,
+	bool bContinuous, bool bVisualDebugger, unsigned int layerMask, unsigned int *layerToMask, int stableSolverOn,
 	fnOnConstraintBreakingCallback onConstraintBreakingCallback, fnOnBodyTriggerEventCallback onBodyTriggerEeventCallback,
 	fnOnBodyContactEventCallback onBodyContactEventCallback)
 {
@@ -40,6 +41,7 @@ sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, floa
 		worldInfo.m_gravity = hkVector4(gravity->x, gravity->y, gravity->z);
 		worldInfo.m_solverIterations = solverIterationCount;
 		worldInfo.m_collisionTolerance = collisionTolerance;
+		worldInfo.m_fireCollisionCallbacks = true;
 		worldInfo.m_simulationType = bContinuous ? 
 			(initStruct.mulithread ? hkpWorldCinfo::SIMULATION_TYPE_MULTITHREADED : hkpWorldCinfo::SIMULATION_TYPE_CONTINUOUS) : 
 			hkpWorldCinfo::SIMULATION_TYPE_DISCRETE;
@@ -113,6 +115,9 @@ sPhysicsWorld* CreatePhysicsWorld(spVec3 gravity, int solverIterationCount, floa
 		if ((layerMask >> i) & 0x01) 
 			filter->enableCollisionsUsingBitfield(1 << i, layerToMask[i]);
 	}
+
+	hkpConstraintAtom::SolvingMethod method = stableSolverOn ? hkpConstraintAtom::METHOD_STABILIZED : hkpConstraintAtom::METHOD_OLD;
+	hkpConstraintStabilizationUtil::setConstraintsSolvingMethod(physicsWorld, method);
 
 	physicsWorld->setCollisionFilter(filter, true);
 	filter->removeReference();

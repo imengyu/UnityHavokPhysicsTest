@@ -51,16 +51,15 @@ sPhysicsConstraints* CreateConstraint(sPhysicsRigidbody* body, sPhysicsRigidbody
 		breaker->setRemoveWhenBroken(false); 
 		breaker->setMaximumAngularImpulse(breakable->maximumAngularImpulse);
 		breaker->setMaximumLinearImpulse(breakable->maximumLinearImpulse);
-		data->removeReference();
 
-		rs->instance = body->world->physicsWorld->createAndAddConstraintInstance(body->rigidBody, body->rigidBody, breaker);
-		rs->instance->setUserData((hkUlong)rs);
+		rs->instance = body->world->physicsWorld->createAndAddConstraintInstance(body->rigidBody, otherBody->rigidBody, breaker);
 		rs->breaker = breaker;
 	}
 	else {
-		rs->instance = body->world->physicsWorld->createAndAddConstraintInstance(body->rigidBody, body->rigidBody, data);
+		rs->instance = body->world->physicsWorld->createAndAddConstraintInstance(body->rigidBody, otherBody->rigidBody, data);
 	}
 
+	rs->instance->setUserData((hkUlong)rs);
 	rs->id = sPhysicsConstraintsId++;
 	rs->world = body->world;
 	rs->breakable = breakable;
@@ -100,7 +99,7 @@ void DestoryConstraints(sPhysicsConstraints* constraint) {
 
 	if (!constraint->world->physicsWorld) {
 		delete constraint;
-		throw std::exception("physicsWorld is destroyed");
+		return;
 	}
 
 	constraint->world->physicsWorld->removeConstraint(constraint->instance);
@@ -150,21 +149,24 @@ sPhysicsConstraints* CreateBallAndSocketConstraint(sPhysicsRigidbody* body, sPhy
 
 	// Create the constraint
 	auto data = new hkpBallAndSocketConstraintData();
-	data->setInWorldSpace(body->rigidBody->getTransform(), body->rigidBody->getTransform(), Vec3TohkVec4(povit));
+	data->setInWorldSpace(body->rigidBody->getTransform(), otherBody->rigidBody->getTransform(), Vec3TohkVec4(povit));
 
 	return CreateConstraint(body, otherBody, data, breakable);
 
 	TRY_END(nullptr)
 }
-sPhysicsConstraints* CreateFixedConstraint(sPhysicsRigidbody* body, sPhysicsRigidbody* otherBody, sConstraintBreakData* breakable)
+sPhysicsConstraints* CreateFixedConstraint(sPhysicsRigidbody* body, sPhysicsRigidbody* otherBody, spVec3 povit, sConstraintBreakData* breakable)
 {
 	TRY_BEGIN
 		
 	CreateConstraintCheck(body, otherBody);
 
 	// Create the constraint
-	auto data = new hkpFixedConstraintData();
-	data->setInBodySpace(body->rigidBody->getTransform(), body->rigidBody->getTransform());
+	auto data = new hkpFixedConstraintData(); 
+	hkTransform tpivot;
+	tpivot.setIdentity();
+	tpivot.setTranslation(Vec3TohkVec4(povit));
+	data->setInWorldSpace(body->rigidBody->getTransform(), otherBody->rigidBody->getTransform(), tpivot);
 
 	return CreateConstraint(body, otherBody, data, breakable);
 
@@ -178,7 +180,7 @@ sPhysicsConstraints* CreateStiffSpringConstraint(sPhysicsRigidbody* body, sPhysi
 
 	// Create the constraint
 	auto data = new hkpStiffSpringConstraintData();
-	data->setInWorldSpace(body->rigidBody->getTransform(), body->rigidBody->getTransform(), Vec3TohkVec4(povitAW), Vec3TohkVec4(povitBW));
+	data->setInWorldSpace(body->rigidBody->getTransform(), otherBody->rigidBody->getTransform(), Vec3TohkVec4(povitAW), Vec3TohkVec4(povitBW));
 	data->setSpringLength(springMin, springMax);
 
 	return CreateConstraint(body, otherBody, data, breakable);
@@ -193,7 +195,7 @@ sPhysicsConstraints* CreateHingeConstraint(sPhysicsRigidbody* body, sPhysicsRigi
 
 	// Create the constraint
 	auto data = new hkpHingeConstraintData();
-	data->setInWorldSpace(body->rigidBody->getTransform(), body->rigidBody->getTransform(), Vec3TohkVec4(povit), Vec3TohkVec4(axis));
+	data->setInWorldSpace(body->rigidBody->getTransform(), otherBody->rigidBody->getTransform(), Vec3TohkVec4(povit), Vec3TohkVec4(axis));
 
 	return CreateConstraint(body, otherBody, data, breakable);
 
@@ -207,14 +209,20 @@ sPhysicsConstraints* CreateLimitedHingeConstraint(sPhysicsRigidbody* body, sPhys
 
 	// Create the constraint
 	auto data = new hkpLimitedHingeConstraintData();
-	data->setInWorldSpace(body->rigidBody->getTransform(), body->rigidBody->getTransform(), Vec3TohkVec4(povit), Vec3TohkVec4(axis));
+	data->setInWorldSpace(body->rigidBody->getTransform(), otherBody->rigidBody->getTransform(), Vec3TohkVec4(povit), Vec3TohkVec4(axis));
 	data->setMinAngularLimit(agularLimitMin);
 	data->setMaxAngularLimit(agularLimitMax);
-	auto motor = CreateConstraintMotor(motorData);
-	data->setMotor(motor);
-	motor->removeReference();
 
-	return CreateConstraint(body, otherBody, data, breakable);
+	if (motorData) {
+		auto motor = CreateConstraintMotor(motorData);
+		data->setMotor(motor);
+		motor->removeReference();
+	}
+
+	auto instance = CreateConstraint(body, otherBody, data, breakable);
+	if (motorData)
+		data->setMotorEnabled(instance->instance->getRuntime(), true);
+	return instance;
 
 	TRY_END(nullptr)
 }
@@ -246,7 +254,7 @@ sPhysicsConstraints* CreatePulleyConstraint(sPhysicsRigidbody* body, sPhysicsRig
 
 	// Create the constraint
 	auto data = new hkpPulleyConstraintData();
-	data->setInWorldSpace(body->rigidBody->getTransform(), body->rigidBody->getTransform(), Vec3TohkVec4(bodyPivot0), Vec3TohkVec4(bodyPivots1), Vec3TohkVec4(worldPivots0), Vec3TohkVec4(worldPivots1), leverageRatio);
+	data->setInWorldSpace(body->rigidBody->getTransform(), otherBody->rigidBody->getTransform(), Vec3TohkVec4(bodyPivot0), Vec3TohkVec4(bodyPivots1), Vec3TohkVec4(worldPivots0), Vec3TohkVec4(worldPivots1), leverageRatio);
 
 	return CreateConstraint(body, otherBody, data, breakable);
 
@@ -260,12 +268,19 @@ sPhysicsConstraints* CreatePrismaticConstraint(sPhysicsRigidbody* body, sPhysics
 
 	// Create the constraint
 	auto data = new hkpPrismaticConstraintData();
-	data->setInWorldSpace(body->rigidBody->getTransform(), body->rigidBody->getTransform(), Vec3TohkVec4(povit), Vec3TohkVec4(axis));
-	auto motor = CreateConstraintMotor(motorData);
-	data->setMotor(motor);
-	motor->removeReference();
-	
-	return CreateConstraint(body, otherBody, data, breakable);
+	data->setInWorldSpace(body->rigidBody->getTransform(), otherBody->rigidBody->getTransform(), Vec3TohkVec4(povit), Vec3TohkVec4(axis));
+
+	if (motorData) {
+		auto motor = CreateConstraintMotor(motorData);
+		data->setMotor(motor);
+		motor->removeReference();
+	}
+
+	auto instance = CreateConstraint(body, otherBody, data, breakable);
+
+	if (motorData)
+		data->setMotorEnabled(instance->instance->getRuntime(), true);
+	return instance;
 
 	TRY_END(nullptr)
 }
@@ -277,7 +292,7 @@ sPhysicsConstraints* CreateCogWheelConstraint(sPhysicsRigidbody* body, sPhysicsR
 
 	// Create the constraint
 	auto data = new hkpCogWheelConstraintData();
-	data->setInWorldSpace(body->rigidBody->getTransform(), body->rigidBody->getTransform(), Vec3TohkVec4(rotationPivotA), Vec3TohkVec4(rotationAxisA), radiusA, Vec3TohkVec4(rotationPivotB), Vec3TohkVec4(rotationAxisB), radiusB);
+	data->setInWorldSpace(body->rigidBody->getTransform(), otherBody->rigidBody->getTransform(), Vec3TohkVec4(rotationPivotA), Vec3TohkVec4(rotationAxisA), radiusA, Vec3TohkVec4(rotationPivotB), Vec3TohkVec4(rotationAxisB), radiusB);
 
 	return CreateConstraint(body, otherBody, data, breakable);
 

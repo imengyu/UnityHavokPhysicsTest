@@ -6,7 +6,7 @@ namespace PhysicsRT {
     [AddComponentMenu("PhysicsRT/Constraints/FixedConstraint")]
     public class FixedConstraint : PhysicsConstraint {
 
-        public PhysicsBody ConnectedBody;
+        public Vector3 Povit;
 
         public override void Create() {
             if(ConnectedBody == null) 
@@ -17,7 +17,7 @@ namespace PhysicsRT {
                 throw new Exception("This body hasn't been created yet");
             if(otherPtr == IntPtr.Zero)
                 throw new Exception("ConnectedBody hasn't been created yet");
-            CreateLastStep(PhysicsApi.API.CreateFixedConstraint(ptr, otherPtr, GetConstraintBreakData()));
+            CreateLastStep(PhysicsApi.API.CreateFixedConstraint(ptr, otherPtr, transform.TransformPoint(Povit), GetConstraintBreakData()));
         }
     }
 }

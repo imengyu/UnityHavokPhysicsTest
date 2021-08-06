@@ -18,11 +18,25 @@ MyCollisionResolution::MyCollisionResolution(sPhysicsWorld* world)
 {
     this->world = world;
 }
+void MyCollisionResolution::collisionAddedCallback(const hkpCollisionEvent& event)
+{
+}
+void MyCollisionResolution::collisionRemovedCallback(const hkpCollisionEvent& event)
+{
+    auto source = event.getBody(0);
+    auto other = event.getBody(1);
+    auto body = (sPhysicsRigidbody*)source->getUserData();
+    auto bodyOther = (sPhysicsRigidbody*)other->getUserData();
+    if (world && world->physicsWorld && body && bodyOther) {
+        
+        sPhysicsBodyContactData data = { 0 };
+        data.isRemoved = 1;
+        world->callbacks.onBodyContactEventCallback(body, bodyOther, body->id, bodyOther->id, &data);
+    }
+}
 void MyCollisionResolution::contactPointCallback(const hkpContactPointEvent& event)
 {
-	HK_ASSERT2(0xf455ea07, event.m_source != hkpCollisionEvent::SOURCE_WORLD, "Do not add this listener to the world.");
-    
-    if (event.m_lastCallbackForFullManifold && event.m_source == hkpCollisionEvent::SOURCE_A)
+    if (event.m_lastCallbackForFullManifold)
     {
         auto source = event.getBody(0);
         auto other = event.getBody(1);
@@ -33,7 +47,7 @@ void MyCollisionResolution::contactPointCallback(const hkpContactPointEvent& eve
             auto& normal = event.m_contactPoint->getNormal();
             auto& snormal = event.m_contactPoint->getSeparatingNormal();
 
-            sPhysicsBodyContactData data;
+            sPhysicsBodyContactData data = { 0 };
             data.distance = event.m_contactPoint->getDistance();
             data.separatingVelocity = event.getSeparatingVelocity();
             data.pos[0] = pos.getComponent<0>();

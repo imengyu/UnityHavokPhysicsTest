@@ -5,9 +5,7 @@ namespace PhysicsRT {
 
     [AddComponentMenu("PhysicsRT/Constraints/PrismaticConstraint")]
     public class PrismaticConstraint : MotorConstraint {
-
-        public PhysicsBody ConnectedBody;
-        
+ 
         public Vector3 Povit;
         public Vector3 Axis = Vector3.forward;
 

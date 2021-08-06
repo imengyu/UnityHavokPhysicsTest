@@ -11,31 +11,27 @@ namespace PhysicsRT
         public int Id { get; protected set; }
 
         [SerializeField]
+        public PhysicsBody ConnectedBody;
+
+        [SerializeField]
+        [HideInInspector]
         private bool m_Breakable = false;
         [SerializeField]
+        [HideInInspector]
         private float m_Threshold = 10f;
         [SerializeField]
+        [HideInInspector]
         private float m_MaximumAngularImpulse = 1000;
         [SerializeField]
+        [HideInInspector]
         private float m_MaximumLinearImpulse = 1000;
-        [Tooltip("在 Awake 时不自动创建约束，设置为 false 后您需要手动调用 Create 来创建约束")]
-        [SerializeField]
-        public bool m_DoNotAutoCreateAtAwake = false;
 
         protected virtual void Awake() {
-            CurrentPhysicsWorld = PhysicsWorld.GetCurrentScensePhysicsWorld();
-            StartCoroutine(LateCreate());
-        }
-        private IEnumerator LateCreate() {
-            yield return new WaitForSeconds(0.8f); 
-            if(!m_DoNotAutoCreateAtAwake) {
-                Create();
-            }
+            
         }
         protected virtual void OnDestroy() {
             if(CurrentPhysicsWorld == null || ptr == IntPtr.Zero)
                 return;
-
             CurrentPhysicsWorld.RemoveConstraint(this);
             PhysicsApi.API.DestoryConstraints(ptr);
             ptr = IntPtr.Zero;
@@ -52,10 +48,6 @@ namespace PhysicsRT
         private IntPtr ptr = IntPtr.Zero;
         private PhysicsWorld CurrentPhysicsWorld = null;
 
-        /// <summary>
-        /// 在 Awake 时不自动创建约束，设置为 false 后您需要手动调用 ForceReCreateShape 来创建约束
-        /// </summary>
-        public bool DoNotAutoCreateAtAwake { get => m_DoNotAutoCreateAtAwake; set { m_DoNotAutoCreateAtAwake = value; } }
         /// <summary>
         /// 获取或设置约束是否被破坏
         /// </summary>
@@ -83,6 +75,19 @@ namespace PhysicsRT
         /// 手动创建
         /// </summary>
         public virtual void Create() {}
+
+        internal bool TryCreate() {
+            if(ptr == IntPtr.Zero && ConnectedBody != null) {
+                var thisBody = GetComponent<PhysicsBody>();
+                if(thisBody.GetPtr() != IntPtr.Zero && ConnectedBody.GetPtr() != IntPtr.Zero) {
+                    Create();
+                    return true;
+                }
+                else if(ConnectedBody.GetPtr() == IntPtr.Zero) 
+                    ConnectedBody.AddPendingCreateConstant(this);
+            }
+            return false;
+        }
         
         protected IntPtr CreatePre() {
             CurrentPhysicsWorld = PhysicsWorld.GetCurrentScensePhysicsWorld();

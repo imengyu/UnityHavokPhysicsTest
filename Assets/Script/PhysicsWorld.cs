@@ -12,7 +12,7 @@ namespace PhysicsRT
     [DisallowMultipleComponent]
     public class PhysicsWorld : MonoBehaviour
     {
-        [Tooltip("如果需要任何连续模拟，请使用此模拟。 (创模拟开始后更改此值无效)")]
+        [Tooltip("如果需要任何连续模拟，请使用此模拟。 (模拟开始后更改此值无效)")]
         [SerializeField]
         private bool Continuous = false;
         [SerializeField]
@@ -30,6 +30,9 @@ namespace PhysicsRT
         [SerializeField]
         [Tooltip("是否启用VisualDebugger (模拟开始后更改此值无效)")]
         private bool VisualDebugger = true;
+        [SerializeField]
+        [Tooltip("是否启用 StableSolver (模拟开始后更改此值无效)")]
+        private bool StableSolverOn = true;
         [Tooltip("是否启用物理模拟")]
         public bool Simulating = true;
         [Tooltip("是否自动更新物理物体的变换数据")]
@@ -86,6 +89,7 @@ namespace PhysicsRT
                     VisualDebugger,
                     0xffffffff,
                     layerNames.GetGroupFilterMasks(), 
+                    StableSolverOn,
                     _OnConstraintBreakingCallback,
                     _OnBodyTriggerEventCallback,
                     _OnBodyContactEventCallback);
@@ -150,9 +154,7 @@ namespace PhysicsRT
                 while(bodyCurrent != null && count < updateBufferSize)
                 {
                     if(bodyCurrent.gameObject.activeSelf) {
-                        if(bodyCurrent.MotionType == MotionType.Keyframed) //Keyframed 物体需要更新位置至引擎
-                            bodyCurrent.UpdateTransformToPhysicsEngine();
-                        else {
+                        if(bodyCurrent.MotionType != MotionType.Keyframed) {
                             bodyCurrent.transform.position = new Vector3(
                                 dat[count * 8 + 0],
                                 dat[count * 8 + 1],

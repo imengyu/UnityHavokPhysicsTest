@@ -25,7 +25,10 @@ class MyCollisionResolution : public hkpContactListener
 {
 public:
 	MyCollisionResolution(sPhysicsWorld* world);
-	virtual void contactPointCallback(const hkpContactPointEvent& event);
+
+	void collisionAddedCallback(const hkpCollisionEvent& event);
+	void collisionRemovedCallback(const hkpCollisionEvent& event);
+	void contactPointCallback(const hkpContactPointEvent& event);
 private:
 	sPhysicsWorld* world;
 };

@@ -56,7 +56,7 @@ public class PhysicsShapeEditorTool : EditorTool
     if(shape == null)
       return;
 
-    var sScale = shape.Wrap == ShapeWrap.TransformShape ? shape.ShapeScale : Vector3.one;
+    var sScale = Vector3.Scale(shape.Wrap == ShapeWrap.TransformShape ? shape.ShapeScale : Vector3.one, shape.transform.localScale);
     var sOrientation = shape.Wrap == ShapeWrap.TransformShape ? Quaternion.Euler(shape.ShapeRotation) : Quaternion.Euler(shape.ShapeType == ShapeType.Box ? 0 : 90, 0, 0);
     var sTranslation = shape.Wrap == ShapeWrap.None ? Vector3.zero : shape.ShapeTranslation;
 

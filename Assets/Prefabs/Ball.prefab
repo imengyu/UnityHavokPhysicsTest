@@ -100,7 +100,7 @@ MonoBehaviour:
   m_Wrap: 0
   m_Translation: {x: 0, y: 0, z: 0}
   m_Rotation: {x: 0, y: 0, z: 0}
-  m_Scale: {x: 0, y: 0, z: 0}
+  m_Scale: {x: 1, y: 1, z: 1}
   m_CustomTags:
     Tag00: 0
     Tag01: 0
@@ -222,7 +222,7 @@ MonoBehaviour:
     Tag05: 0
     Tag06: 0
     Tag07: 0
-  m_Friction: 0.57
+  m_Friction: 1
   m_Restitution: 1.2
   m_Layer: 0
   m_InertiaTensor:
@@ -245,7 +245,9 @@ MonoBehaviour:
   m_MaxAngularVelocity: 200
   m_MaxLinearVelocity: 200
   m_IsTigger: 0
+  m_AddContactListener: 0
   m_DoNotAutoCreateAtAwake: 0
+  m_AutoComputeCenterOfMass: 1
 --- !u!114 &2999501707901348232
 MonoBehaviour:
   m_ObjectHideFlags: 0

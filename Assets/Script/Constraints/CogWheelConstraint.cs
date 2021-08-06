@@ -6,8 +6,6 @@ namespace PhysicsRT {
     [AddComponentMenu("PhysicsRT/Constraints/CogWheelConstraint")]
     public class CogWheelConstraint : PhysicsConstraint {
 
-        public PhysicsBody ConnectedBody;
-
         public Vector3 rotationPivotA;
         public Vector3 rotationAxisA = Vector3.forward;
         public float radiusA;

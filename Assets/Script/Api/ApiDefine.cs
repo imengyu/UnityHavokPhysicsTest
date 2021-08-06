@@ -114,7 +114,7 @@ namespace PhysicsRT
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate IntPtr fnCreatePhysicsWorld(IntPtr gravity,
       int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance,
-      bool bContinuous, bool bVisualDebugger, uint layerMask, IntPtr layerToMask,
+      bool bContinuous, bool bVisualDebugger, uint layerMask, IntPtr layerToMask, int stableSolverOn,
       IntPtr onConstraintBreakingCallback, IntPtr onBodyTriggerEventCallback, IntPtr onBodyContactEventCallback);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate void fnDestroyPhysicsWorld(IntPtr world);
@@ -163,7 +163,7 @@ namespace PhysicsRT
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate IntPtr fnCreateBallAndSocketConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, IntPtr breakable);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-  public delegate IntPtr fnCreateFixedConstraint(IntPtr body, IntPtr otherBody, IntPtr breakable);
+  public delegate IntPtr fnCreateFixedConstraint(IntPtr body, IntPtr otherBody, IntPtr povit, IntPtr breakable);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public delegate IntPtr fnCreateStiffSpringConstraint(IntPtr body, IntPtr otherBody, IntPtr povitAW, IntPtr povitBW, float springMin, float springMax, IntPtr breakable);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -621,12 +621,14 @@ namespace PhysicsRT
 
       return rs;
     }
-    public IntPtr CreateFixedConstraint(IntPtr body, IntPtr otherBody, sConstraintBreakData breakable) {
+    public IntPtr CreateFixedConstraint(IntPtr body, IntPtr otherBody, Vector3 povit, sConstraintBreakData breakable) {
       if (_CreateFixedConstraint == null)
         throw new ApiNotFoundException("CreateFixedConstraint");
 
+      var povitPtr = Vector3ToNative3(povit);
       var breakablePtr = ConstraintBreakDataToNative(breakable);
-      var rs = _CreateFixedConstraint(body, otherBody, breakablePtr);
+      var rs = _CreateFixedConstraint(body, otherBody, povitPtr, breakablePtr);
+      FreeNativeVector3(povitPtr);
       Marshal.FreeHGlobal(breakablePtr);
 
       ApiExceptionCheck();
@@ -670,7 +672,7 @@ namespace PhysicsRT
         throw new ApiNotFoundException("CreateLimitedHingeConstraint");
 
       var povitPtr = Vector3ToNative3(povit);
-      var axisPtr = Vector3ToNative3(povit);
+      var axisPtr = Vector3ToNative3(axis);
       var breakablePtr = ConstraintBreakDataToNative(breakable);
       var motoDataPtr = ConstraintMotorDataToNative(motorData);
       var rs = _CreateLimitedHingeConstraint(body, otherBody, povitPtr, axisPtr, agularLimitMin, agularLimitMax, breakablePtr, motoDataPtr);
@@ -1231,7 +1233,7 @@ namespace PhysicsRT
       IntPtr verticesBuffer = Marshal.AllocHGlobal(bufferSize);
       Marshal.Copy(verticesArr, 0, verticesBuffer, verticesArr.Length);
 
-      var rs = _Build3DPointsConvexHull(verticesBuffer, verticesArr.Length);
+      var rs = _Build3DPointsConvexHull(verticesBuffer, points.Length);
       
       Marshal.FreeHGlobal(verticesBuffer);
 
@@ -1581,7 +1583,7 @@ namespace PhysicsRT
       ApiExceptionCheck();
     }
     public IntPtr CreatePhysicsWorld(Vector3 gravity, int solverIterationCount, float broadPhaseWorldSize, float collisionTolerance,
-      bool bContinuous, bool bVisualDebugger, uint layerMask, uint[] layerToMask,
+      bool bContinuous, bool bVisualDebugger, uint layerMask, uint[] layerToMask, bool stableSolverOn,
       fnOnConstraintBreakingCallback onConstraintBreakingCallback, fnOnBodyTriggerEventCallback onBodyTriggerEventCallback, fnOnBodyContactEventCallback onBodyContactEventCallback)
     {
       if (_CreatePhysicsWorld == null)
@@ -1601,7 +1603,7 @@ namespace PhysicsRT
       var onBodyTriggerEnterCallbackPtr = Marshal.GetFunctionPointerForDelegate(onBodyTriggerEventCallback);
       var onBodyTriggerLeaveCallbackPtr = Marshal.GetFunctionPointerForDelegate(onBodyContactEventCallback);
 
-      var rs = _CreatePhysicsWorld(pGravity, solverIterationCount, broadPhaseWorldSize, collisionTolerance, bContinuous, bVisualDebugger, layerMask, layerToMaskPtr, 
+      var rs = _CreatePhysicsWorld(pGravity, solverIterationCount, broadPhaseWorldSize, collisionTolerance, bContinuous, bVisualDebugger, layerMask, layerToMaskPtr, BoolToInt(stableSolverOn),
         onConstraintBreakingCallbackPtr, onBodyTriggerEnterCallbackPtr, onBodyTriggerLeaveCallbackPtr);
 
       FreeNativeVector4(pGravity);

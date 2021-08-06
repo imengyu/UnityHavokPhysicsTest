@@ -35,6 +35,10 @@ namespace PhysicsRT.Utils
 				n.prev.next = n.next;
 			if (n.next != null)
 				n.next.prev = n.prev;
+			if(n == begin)
+				begin = n.next;
+			if(n == end)
+				end = n.prev;
 			m_size--;
 		}
 		public void clear()
